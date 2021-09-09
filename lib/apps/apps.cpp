@@ -62,9 +62,9 @@ void timeKeeper() {
         second++;
         last_time = time;
 
-        Serial.print(minute);
-        Serial.print(":");
-        Serial.println(second);
+        // Serial.print(minute);
+        // Serial.print(":");
+        // Serial.println(second);
 
         if (second >= 59) {
           second = -1;

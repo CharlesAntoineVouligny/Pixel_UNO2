@@ -19,7 +19,7 @@ long color, hue;
 unsigned long time, last_time = 0, pressStartTime;
 bool shortpress = false, longpress = false, done = false;
 
-bool flag = true, init_setflag = true, flag2 = true;
+bool flag = true, init_setflag = false, flag2 = true;
 
 
 
@@ -46,15 +46,19 @@ void setup() {
 void loop() {
   Key.tick();
   
-  // while(init_setflag) {
-  //   timeset = counter;
-  //   Serial.print(timeset);
-  //   Serial.println(" minutes");
-  //   if (shortpress) {
-  //     init_setflag = false;
-  //     Serial.println("Time set!");
-  //   }
-  // }
+  while(!init_setflag) {
+    timeset = counter;
+    Serial.print(timeset);
+    Serial.println(" minutes");
+    Key.tick();
+    if (shortpress) {
+      init_setflag = true;
+      shortpress = false;
+      timeset *= 60;
+      counter = 0;
+      Serial.println("Time set!");
+    }
+  }
   
   switch (mode)
   {
@@ -114,7 +118,33 @@ void loop() {
       color = strip.ColorHSV(hue, sat, bright);
       time = millis();
       button();
+      timeKeeper();  //Increments time in variables minute and second
 
+      time_passed = minute*60 + second;
+      time_running = timeset - time_passed;
+      time_running = constrain(time_running, 0, timeset);
+      
+      if (time_running <= 0 && !done) {
+        Serial.println("Done!");
+        done = true;
 
+      } else {
+      
+          
+          n = constrain(map(time_running, 0, timeset, 0, 23), 0, 23);
+          if (n != last_n) {
+            last_n = n;
+            for (int j = 0; j < n; j++) {
+              strip.setPixelColor(j, color);
+              Serial.print(j);
+              Serial.println(" leds on");
+            }
+            for (int i = n; i <= 23; i++ ) {
+              strip.setPixelColor(i, 0, 0, 0);
+              Serial.print(i);
+              Serial.println(" leds off");
+            }
+          }
+      }
   }
 }
