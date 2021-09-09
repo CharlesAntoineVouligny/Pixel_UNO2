@@ -69,56 +69,41 @@ void loop() {
     case 2:
       // Brightness setting
       
-      while(!shortpress || !longpress) {
+      while(!shortpress) {
         bright = constrain(map(counter, 0, 25, 0 , 250), 0, 250);
         Serial.print("Brightness: ");
         Serial.println(bright);
         Key.tick();
-        if (longpress) {
-          mode = 0;
-          break;
-        }
       }
+      shortpress = false;
       mode++;
       break;
 
     case 3:
       // Color setting
-      if (counter != last_counter) {
-        last_counter = counter;
+      while (!shortpress) {
         hue = constrain(map(counter, 0, 50, 0, 65536), 0, 65536);
         Serial.print("Hue value: ");
         Serial.println(hue);
+        Key.tick();
+
       }
-     if (longpress) {
-        mode = 0;
-        longpress = false;
-        break;
-      }
-      if (shortpress) {
-        mode++;
-        shortpress = false;
-        break;
-      }
+      shortpress = false;
+      mode++;
+      break;
     
     case 4:
       // Saturation setting
-      if (counter != last_counter) {
-      last_counter = counter;
+      while (!shortpress) {
       sat = constrain(map(counter, 0, 25, 0 , 250), 0, 250);
         Serial.print("Saturation: ");
         Serial.println(sat);
+        Key.tick();
+
       }
-     if (longpress) {
-        mode = 0;
-        longpress = false;
-        break;
-      }
-      if (shortpress) {
-        mode++;
-        shortpress = false;
-        break;
-      }
+      shortpress = false;
+      mode++;
+      break;
     
     case 5:
       mode = 0;

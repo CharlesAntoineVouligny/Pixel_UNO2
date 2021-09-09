@@ -81,14 +81,12 @@ void checkTicks() {
 void singleClick()
 {
   shortpress = true;
-  Serial.println("singleClick() detected.");
 } // singleClick
 
 
 // this function will be called when the button was pressed 2 times in a short timeframe.
 void doubleClick()
 {
-  Serial.println("doubleClick() detected.");
 
 } // doubleClick
 
