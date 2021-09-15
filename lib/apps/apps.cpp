@@ -3,13 +3,15 @@
 #include <apps.h>
 #include <OneButton.h>
 
-extern int mode, counter, second, minute;
+// Extern variables
+extern int mode, counter; 
+extern volatile int second, minute;
 extern bool shortpress, longpress;
 extern long time, last_time;
 extern unsigned long pressStartTime;
-
 extern OneButton Key;
 
+// Local global variables
 int key = 2, s1 = 4, s2 = 3; // Rotary Encoder Pins
 int pinAstateCurrent = LOW;        // Current state of Pin A
 int pinAStateLast = pinAstateCurrent;
@@ -58,62 +60,13 @@ void button() {
 }
 
 void timeKeeper() {
-  if (time - last_time >= 1000) {
-        second++;
-        last_time = time;
-
-        // Serial.print(minute);
-        // Serial.print(":");
-        // Serial.println(second);
-
-        if (second >= 59) {
-          second = -1;
-          minute++;
-          }
-        }
+  if(second > 60) {
+    second = 0;
+    minute++;
+  }
 }
 
-void checkTicks() {
-  Key.tick();
-}
-
-// this function will be called when the button was pressed 1 time only.
-void singleClick()
-{
+void click() {
   shortpress = true;
-} // singleClick
-
-
-// this function will be called when the button was pressed 2 times in a short timeframe.
-void doubleClick()
-{
-
-} // doubleClick
-
-
-// this function will be called when the button was pressed multiple times in a short timeframe.
-void multiClick()
-{
-  Serial.print("multiClick(");
-  Serial.print(Key.getNumberClicks());
-  Serial.println(") detected.");
-
-} // multiClick
-
-
-// this function will be called when the button was held down for 1 second or more.
-void pressStart()
-{
-  longpress = true;
-  Serial.println("pressStart()");
-  pressStartTime = millis() - 1000; // as set in setPressTicks()
-} // pressStart()
-
-
-// this function will be called when the button was released after a long hold.
-void pressStop()
-{
-  Serial.print("pressStop(");
-  Serial.print(millis() - pressStartTime);
-  Serial.println(") detected.");
-} // pressStop()
+  Serial.println(shortpress);
+}
