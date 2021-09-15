@@ -1,15 +1,14 @@
 // Include Files
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
-#include <OneButton.h>
 #include "apps.h"
 
 // Objects declaration
 #define LED_PIN    A1
 #define LED_COUNT 24
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+
 extern int key, s1, s2;
-OneButton Key(key, true);
 
 // Global variables
 int mode = 0, counter = 0, last_counter = 0, timeset;
@@ -17,9 +16,10 @@ volatile int second = 0, minute = 0;
 int bright, sat, time_passed, time_running, n, last_n;
 int last_second, time_mod;
 long color, hue;
-unsigned long time, last_time = 0, pressStartTime;
+unsigned long time, last_time = 0;
 bool shortpress = false, longpress = false, done = false;
 bool flag = true, init_setflag = false, flag2 = true;
+volatile bool press_flag = false;
 
 // Timer/Counter1 Compare Match A
 // Internal interrupt to count time
@@ -28,6 +28,11 @@ ISR(TIMER1_COMPA_vect) {
     PORTB ^= 0b00100000; //Toggles intern LED (pin13)
     second++;
 }
+
+void click() {
+  press_flag = true;
+}
+
 
 int main(void) {
 
@@ -55,10 +60,16 @@ int main(void) {
 
 
   while (1) {
-    if (shortpress) {
-      shortpress = false;
-    }
     
+    button();
+    if (shortpress) {
+      Serial.println("Short Press!");
+      shortpress = !shortpress;
+    }
+    if (longpress) {
+      Serial.println("Long Press!");
+      longpress = !longpress;
+    }
     // while(!init_setflag) {
     //   timeset = counter;
     //   Serial.print(timeset);
