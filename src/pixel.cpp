@@ -1,5 +1,6 @@
 // Include Files
 #include <Arduino.h>
+#include <EEPROM.h>
 #include <Adafruit_NeoPixel.h>
 #include "apps.h"
 
@@ -25,6 +26,19 @@ volatile bool release_flag = false, shortpress = false, longpress = false;
 volatile unsigned long press_time, release_time;
 
 volatile unsigned long timer = 0;
+
+// The union is for storing the hue value in EEPROM
+// it needs to be splitted in 4 parts
+union u_conv
+{
+    long    lValue;
+    byte    lByte[4];
+        
+};
+
+u_conv
+    strt,
+    finish;
 
 // Timer/Counter1 Compare Match A
 // Internal interrupt to count time in seconds
@@ -67,10 +81,17 @@ int main(void) {
   attachInterrupt(digitalPinToInterrupt(s2), update, CHANGE);
   attachInterrupt(digitalPinToInterrupt(key), button, CHANGE);
 
+  bright = EEPROM.read(1);
+  sat = EEPROM.read(2);
+  for(int i = 3; i < 7; i++){
+        finish.lByte[i-3] = EEPROM.read(i);
+    }
+  hue = finish.lValue;
+
+  Serial.println(hue);
+  Serial.println(bright);
+  Serial.println(sat);
   
-
-
-
   while(1) {
     
     click();
@@ -103,24 +124,35 @@ int main(void) {
 
       case 2:
         // Brightness setting
-        
+          counter = map(bright, 0, 255, 0, 25);
         while(!shortpress) {
           click();
-          bright = constrain(map(counter, 0, 25, 0 , 250), 0, 250);
+          bright = constrain(map(counter, 0, 25, 0 , 255), 0, 255);
           Serial.print("Brightness: ");
           Serial.println(bright);
         }
+        EEPROM.update(1, bright);
         shortpress = false;
         mode++;
         break;
 
       case 3:
         // Color setting
+          counter = map(hue, 0, 65536, 0, 50);
         while (!shortpress) {
           click();
           hue = constrain(map(counter, 0, 50, 0, 65536), 0, 65536);
           Serial.print("Hue value: ");
           Serial.println(hue);
+        }
+        for (int i = 3; i < 7; i++){
+        finish.lByte[i-3] = EEPROM.read(i);
+        }
+        if (hue != finish.lValue) {
+          strt.lValue = hue;
+          for (int i = 3; i < 7; i++) {
+            EEPROM.write(i, strt.lByte[i-3]);
+          }
         }
         shortpress = false;
         mode++;
@@ -128,12 +160,14 @@ int main(void) {
       
       case 4:
         // Saturation setting
+          counter = map(sat, 0, 255, 0, 25);
         while (!shortpress) {
           click();
-          sat = constrain(map(counter, 0, 25, 0 , 250), 0, 250);
+          sat = constrain(map(counter, 0, 25, 0 , 250), 0, 255);
           Serial.print("Saturation: ");
           Serial.println(sat);
         }
+        EEPROM.update(2, sat);
         shortpress = false;
         mode++;
         break;
