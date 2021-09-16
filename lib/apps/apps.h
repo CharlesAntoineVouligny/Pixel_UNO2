@@ -15,3 +15,6 @@ void pressStart();
 void multiClick();
 void doubleClick();
 void singleClick();
+
+void click();
+int modeSelect();

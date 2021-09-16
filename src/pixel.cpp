@@ -12,25 +12,28 @@ extern int key, s1, s2;
 
 // Global variables
 int mode = 0, counter = 0, last_counter = 0, timeset;
-volatile int second = 0, minute = 0;
 int bright, sat, time_passed, time_running, n, last_n;
 int last_second, time_mod;
 long color, hue;
 unsigned long time, last_time = 0;
-bool shortpress = false, longpress = false, done = false;
+bool done = false, state=false;
 bool flag = true, init_setflag = false, flag2 = true;
-volatile bool press_flag = false;
+// Interrupt variables
+volatile int second = 0, minute = 0;
+volatile bool press_flag = false, press_flag2 = false;
+volatile bool release_flag = false, shortpress = false, longpress = false;
+volatile unsigned long press_time, release_time;
+
+volatile unsigned long timer = 0;
 
 // Timer/Counter1 Compare Match A
-// Internal interrupt to count time
+// Internal interrupt to count time in seconds
 ISR(TIMER1_COMPA_vect) {
-    // Increment time
-    PORTB ^= 0b00100000; //Toggles intern LED (pin13)
-    second++;
-}
-
-void click() {
-  press_flag = true;
+    timer++;
+    if(timer % 1000 == 0){
+      PORTB ^= (1 << 5);
+      second++;
+    }
 }
 
 
@@ -39,135 +42,138 @@ int main(void) {
   Serial.begin(9600);
 
 
-  DDRB = 0b00100000; // Set internal LED to OUTPUT
+  DDRB = (1 << 5); // Set internal LED to OUTPUT
+  DDRD = (1 << 7);
 
-  TCCR1B = 0b00001101; // CTC mode enabled WGM12 (xxxx1xxx)  and prescaler set to 1024bits (xxxxx101)
+
+
+  TCCR1B |=(1 << WGM12); // CTC Mode
   // Set timer limit (OCR1A/B + 1) * prescaler * 62.5 nanoSeconds
     //(15624 + 1) * 1024 * 62.5 x10^-9 = 1 second
-    OCR1A = 15624; // Clear Timer on Compare mode(CTC) maximum value 
+    OCR1A = 0xF9; // Clear Timer on Compare mode(CTC) maximum value 
     TIMSK1 = 0B00000010; // Set OCIEA bit true to enable compare with OCR1A 
     // Output compare A match interrupt enable
+
+  sei(); //Enable interrupt
+
+  TCCR1B |=(1 << CS11); // Prescaler to 64 bits
+  TCCR1B |=(1 << CS10); 
+  
     
   pinMode (s1, INPUT);
   pinMode (s2, INPUT);
-  pinMode(key, INPUT);
+  pinMode(key, INPUT_PULLUP);
 
   attachInterrupt(digitalPinToInterrupt(s2), update, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(key), click, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(key), button, CHANGE);
 
-  sei(); //enable interrupts globally
+  
 
 
 
-  while (1) {
+  while(1) {
     
-    button();
-    if (shortpress) {
-      Serial.println("Short Press!");
-      shortpress = !shortpress;
+    click();
+
+    while(!init_setflag) {
+      timeset = counter;
+      click();
+      Serial.print(timeset);
+      Serial.println(" minutes");
+      if (shortpress) {
+        init_setflag = true;
+        shortpress = false;
+        longpress = false; // error-prevention line
+        timeset *= 60;
+        counter = 0;
+        second = 0;
+        minute = 0;
+        Serial.println("Time set!");
+      }
     }
-    if (longpress) {
-      Serial.println("Long Press!");
-      longpress = !longpress;
-    }
-    // while(!init_setflag) {
-    //   timeset = counter;
-    //   Serial.print(timeset);
-    //   Serial.println(" minutes");
-    //   if (shortpress) {
-    //     init_setflag = true;
-    //     shortpress = false;
-    //     timeset *= 60;
-    //     counter = 0;
-    //     second = 0;
-    //     minute = 0;
-    //     Serial.println("Time set!");
-    //   }
-    // }
-    
-    // switch (mode)
-    // {
-    //   case 1:
-    //     // Reset
-    //     Serial.println("Reset");
-    //     counter = 0;
-    //     mode = 0;
-    //     flag = true;
-    //     break;  
-
-    //   case 2:
-    //     // Brightness setting
-        
-    //     while(!shortpress) {
-    //       bright = constrain(map(counter, 0, 25, 0 , 250), 0, 250);
-    //       Serial.print("Brightness: ");
-    //       Serial.println(bright);
-    //     }
-    //     shortpress = false;
-    //     mode++;
-    //     break;
-
-    //   case 3:
-    //     // Color setting
-    //     while (!shortpress) {
-    //       hue = constrain(map(counter, 0, 50, 0, 65536), 0, 65536);
-    //       Serial.print("Hue value: ");
-    //       Serial.println(hue);
-
-    //     }
-    //     shortpress = false;
-    //     mode++;
-    //     break;
       
-    //   case 4:
-    //     // Saturation setting
-    //     while (!shortpress) {
-    //     sat = constrain(map(counter, 0, 25, 0 , 250), 0, 250);
-    //       Serial.print("Saturation: ");
-    //       Serial.println(sat);
-    //       
+    switch (mode)
+    {
+      case 1:
+        // Reset
+        Serial.println("Reset");
+        counter = 0;
+        mode = 0;
+        break;  
 
-    //     }
-    //     shortpress = false;
-    //     mode++;
-    //     break;
+      case 2:
+        // Brightness setting
+        
+        while(!shortpress) {
+          click();
+          bright = constrain(map(counter, 0, 25, 0 , 250), 0, 250);
+          Serial.print("Brightness: ");
+          Serial.println(bright);
+        }
+        shortpress = false;
+        mode++;
+        break;
+
+      case 3:
+        // Color setting
+        while (!shortpress) {
+          click();
+          hue = constrain(map(counter, 0, 50, 0, 65536), 0, 65536);
+          Serial.print("Hue value: ");
+          Serial.println(hue);
+        }
+        shortpress = false;
+        mode++;
+        break;
       
-    //   case 5:
-    //     mode = 0;
-    //     break;
+      case 4:
+        // Saturation setting
+        while (!shortpress) {
+          click();
+          sat = constrain(map(counter, 0, 25, 0 , 250), 0, 250);
+          Serial.print("Saturation: ");
+          Serial.println(sat);
+        }
+        shortpress = false;
+        mode++;
+        break;
+      
+      case 5:
+        mode = 0;
+        break;
 
-    //   default:
+      default:
         
-    //     color = strip.ColorHSV(hue, sat, bright);
-    //     button(); // 1 press is reset, longpress is parameters
-    //     // timeKeeper();  //Increments time in variables minute and second
+        modeSelect();
+        color = strip.ColorHSV(hue, sat, bright);
+        timeKeeper();  //Increments time in variables minute and second
 
-    //     time_passed = minute*60 + second;
-    //     time_running = timeset - time_passed;
-    //     time_running = constrain(time_running, 0, timeset);
+        time_passed = minute*60 + second;
+        time_running = timeset - time_passed;
+        time_running = constrain(time_running, 0, timeset);
         
-    //     if (time_running <= 0 && !done) {
-    //       Serial.println("Done!");
-    //       done = true;
+        if (time_running <= 0 && !done) {
+          Serial.println("Done!");
+          done = true;
 
-    //     } else {
+        } else {
         
             
-    //         n = constrain(map(time_running, 0, timeset, 0, 23), 0, 23);
-    //         if (n != last_n) {
-    //           last_n = n;
-    //           for (int j = 0; j < n; j++) {
-    //             strip.setPixelColor(j, color);
-    //             Serial.print(j);
-    //             Serial.println(" leds on");
-    //           }
-    //           for (int i = n; i <= 23; i++ ) {
-    //             strip.setPixelColor(i, 0, 0, 0);
-    //             Serial.print(i);
-    //             Serial.println(" leds off");
-    //           }
-    //         }
-    //     }
-    // }
+            n = constrain(map(time_running, 0, timeset, 0, 23), 0, 23);
+            if (n != last_n) {
+              last_n = n;
+              for (int j = 0; j < n; j++) {
+                strip.setPixelColor(j, color);
+                Serial.print(j);
+                Serial.println(" leds on");
+              }
+              for (int i = n; i <= 23; i++ ) {
+                strip.setPixelColor(i, 0, 0, 0);
+                Serial.print(i);
+                Serial.println(" leds off");
+              }
+            }
+        }
+    }
   }
 }
