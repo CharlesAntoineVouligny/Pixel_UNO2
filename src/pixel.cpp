@@ -7,29 +7,30 @@
 
 #define LED_PIN    A1
 #define LED_COUNT 24
+#define key 2
+#define s2 3
+#define s1 4
 // Objects declaration
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
-extern int key, s1, s2;
-
 // Global variables
-int mode = 0, counter = 0, last_counter = 0, timeset;
-int bright, sat, time_passed, time_running, n, last_n;
-int last_second, time_mod;
+byte mode = 0, counter = 0, last_counter = 0;
+byte bright, sat, n, last_n;
+int  timeset, time_passed, time_running;
 long color, hue;
-unsigned long time, last_time = 0;
-bool done = false, state=false;
-bool flag = true, init_setflag = false, flag2 = true;
+unsigned long time;
+bool done = false;
+bool flag = true, init_setflag = false;
 // Interrupt variables
-volatile int second = 0, minute = 0;
+volatile byte second = 0;
+volatile int minute = 0;
 volatile bool press_flag = false, press_flag2 = false;
-volatile bool release_flag = false, shortpress = false, longpress = false;
+volatile bool release_flag = false, shortpress = false;
+volatile bool longpress = false;
 volatile unsigned long press_time, release_time;
 
 volatile unsigned long timer = 0;
 
-// The union is for storing the hue value in EEPROM
-// it needs to be splitted in 4 parts
 union u_conv
 {
     long    lValue;
@@ -41,8 +42,7 @@ u_conv
     strt,
     finish;
 
-// Timer/Counter1 Compare Match A
-// Internal interrupt to count time in seconds
+// Internal interrupt for ms
 ISR(TIMER1_COMPA_vect) {
     timer++;
     if(timer % 1000 == 0){
@@ -56,25 +56,17 @@ int main(void) {
 
   Serial.begin(9600);
 
+// Set internal LED to OUTPUT
+  DDRB = (1 << 5); 
 
-  DDRB = (1 << 5); // Set internal LED to OUTPUT
-  DDRD = (1 << 7);
-
-
-
-  TCCR1B |=(1 << WGM12); // CTC Mode
-  // Set timer limit (OCR1A/B + 1) * prescaler * 62.5 nanoSeconds
-    //(15624 + 1) * 1024 * 62.5 x10^-9 = 1 second
-    OCR1A = 0xF9; // Clear Timer on Compare mode(CTC) maximum value 
-    TIMSK1 = 0B00000010; // Set OCIEA bit true to enable compare with OCR1A 
-    // Output compare A match interrupt enable
-
-  sei(); //Enable interrupt
-
-  TCCR1B |=(1 << CS11); // Prescaler to 64 bits
+// See Ben Finio tutorial on YouTube
+  TCCR1B |=(1 << WGM12);
+  OCR1A = 0xF9;  
+  TIMSK1 = 0B00000010;
+  sei(); 
+  TCCR1B |=(1 << CS11);
   TCCR1B |=(1 << CS10); 
   
-    
   pinMode (s1, INPUT_PULLUP);
   pinMode (s2, INPUT_PULLUP);
   pinMode(key, INPUT_PULLUP);
@@ -82,6 +74,8 @@ int main(void) {
   attachInterrupt(digitalPinToInterrupt(s2), update, CHANGE);
   attachInterrupt(digitalPinToInterrupt(key), button, CHANGE);
 
+// Read parameters from EEPROM and reconstruct the hue from 4 bytes
+// using an union (see union_example.cpp in the examples folder)
   bright = EEPROM.read(1);
   sat = EEPROM.read(2);
   for(int i = 3; i < 7; i++){
@@ -89,10 +83,6 @@ int main(void) {
     }
   hue = finish.lValue;
 
-  Serial.println(hue);
-  Serial.println(bright);
-  Serial.println(sat);
-  
   while(1) {
     
     click();
@@ -182,20 +172,19 @@ int main(void) {
         
         modeSelect();
         color = strip.ColorHSV(hue, sat, bright);
-        timeKeeper();  //Increments time in variables minute and second
-
+      //Increments time in variables minute and second
+        timeKeeper();  
         time_passed = minute*60 + second;
         time_running = timeset - time_passed;
         time_running = constrain(time_running, 0, timeset);
         
-        // Sleep http://www.gammon.com.au/power
+      // Sleep http://www.gammon.com.au/power
         if (time_running <= 0) {
           Going_To_Sleep();
 
         } else {
-        
-            
             n = constrain(map(time_running, 0, timeset, 0, 23), 0, 23);
+
             if (n != last_n) {
               last_n = n;
               for (int j = 0; j < n; j++) {

@@ -3,26 +3,28 @@
 #include <avr/sleep.h>
 #include <apps.h>
 
+#define LED_PIN    A1
+#define LED_COUNT 24
+#define key 2
+#define s2 3
+#define s1 4
 
-// Extern variables
-extern volatile int second, minute;
-extern volatile bool press_flag, press_flag2, release_flag, shortpress, longpress;
+// Extern interrupt variables
+extern volatile byte second;
+extern volatile int minute;
+extern volatile bool press_flag, press_flag2, release_flag;
+extern volatile bool shortpress, longpress;
 extern volatile unsigned long press_time, release_time, timer;
 
-
-
-extern int mode, counter;
-extern unsigned long time, last_time;
+// Extern globals
+extern byte mode, counter;
+extern unsigned long time;
 extern bool init_setflag;
 
-// Local global variables
-int key = 2, s1 = 4, s2 = 3; // Rotary Encoder Pins
-int pinAstateCurrent = LOW;        // Current state of Pin A
+// Local global
+int pinAstateCurrent = LOW;
 int pinAStateLast = pinAstateCurrent;
 int press = 0;
-
-bool second_press = false;
-
 
 void timeKeeper() {
   if(second > 59) {
@@ -64,10 +66,8 @@ void update() {
 
     if (digitalRead(s2) == HIGH) { 
       counter++;
-      Serial.println(counter);             // Print on screen
     } else {
       counter--;
-      Serial.println(counter);            // Print on screen
     }
     
   }
@@ -81,20 +81,20 @@ void click() {
   //if this is true the button was just pressed down
     if(press_flag) {
 
-      //note the time the button was pressed
+    //note the time the button was pressed
       press_time = timer;
       press_flag = false;
       press_flag2 = true;
       PORTD ^= (1 << 7);
     }
+    //if its been more than 850ms
     else if(timer - press_time > 850 && press_flag2) {
 
         longpress = true;
         press_flag2 = false;
-        // Serial.println("Long Press!");
-        PORTD ^= (1 << 7);
+        
     }
-    //if no button is high one had to be released. The millis function will increase while a button is hold down the loop function will be cycled (no change, so no interrupt is active) 
+    //if it's been less
     else if(release_flag) {
 
       release_time = timer;
@@ -105,48 +105,42 @@ void click() {
         shortpress = true;
         press_flag = false;
         press_flag2 = false;
-        // Serial.println("Short Press!");
-        PORTD ^= (1 << 7);
       }
     }
 }
 
 void wakeUp(){
-  Serial.println("Interrrupt Fired");//Print message to serial monitor
-  sleep_disable();//Disable sleep mode
-  detachInterrupt(0); //Removes the interrupt from pin 2;
+  sleep_disable();
+  detachInterrupt(0);
 }
 
 void Going_To_Sleep(){
+// See http://www.gammon.com.au/power or sleep example
     detachInterrupt(digitalPinToInterrupt(s2));
     detachInterrupt(digitalPinToInterrupt(key));
-    for (byte i = 0; i < 20; i++) {
-      if(i != 2) {
-        pinMode(i, OUTPUT);
-      }
-    }
-    // disable ADC
+
+  // Set all pins as outputs except pin 2
+    DDRB = 0b00111111;
+    DDRC = 0b00111111;
+    DDRD = 0b11111011;
+  // make sure they're low
+    PORTB &= 0b11000000;
+    PORTC &= 0b11000000;
+    PORTD = 0b00000100;
+    
     ADCSRA = 0;
-    set_sleep_mode(SLEEP_MODE_PWR_DOWN); //full sleep, only wakeable from int or wdt
-    sleep_enable();//Enabling sleep mode
-    // Do not interrupt before we go to sleep, or the
-    // ISR will detach interrupts and we won't wake.
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN); 
+    sleep_enable();
     noInterrupts();
     attachInterrupt(0, wakeUp, LOW);
     EIFR = bit (INTF0);
-    // turn off brown-out enable in software
-    // BODS must be set to one and BODSE must be set to zero within four clock cycles
     MCUCR = bit (BODS) | bit (BODSE);
-    // The BODS bit is automatically cleared after three clock cycles
     MCUCR = bit (BODS); 
-    
-    // We are guaranteed that the sleep_cpu call will be done
-    // as the processor executes the next instruction after
-    // interrupts are turned on.
-    interrupts ();  // one cycle
-    sleep_cpu ();   // one cycle
-    pinMode(3, INPUT_PULLUP);
-    pinMode(4, INPUT_PULLUP);
+    interrupts (); 
+    sleep_cpu ();  
+  // wakey wakey
+    DDRD = 0b11100011;
+    PORTD = 0b00011100;
     attachInterrupt(digitalPinToInterrupt(s2), update, CHANGE);
     attachInterrupt(digitalPinToInterrupt(key), button, CHANGE);
     counter = 0;
