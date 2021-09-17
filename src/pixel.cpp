@@ -2,11 +2,12 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <Adafruit_NeoPixel.h>
+#include <avr/sleep.h>
 #include "apps.h"
 
-// Objects declaration
 #define LED_PIN    A1
 #define LED_COUNT 24
+// Objects declaration
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 extern int key, s1, s2;
@@ -74,8 +75,8 @@ int main(void) {
   TCCR1B |=(1 << CS10); 
   
     
-  pinMode (s1, INPUT);
-  pinMode (s2, INPUT);
+  pinMode (s1, INPUT_PULLUP);
+  pinMode (s2, INPUT_PULLUP);
   pinMode(key, INPUT_PULLUP);
 
   attachInterrupt(digitalPinToInterrupt(s2), update, CHANGE);
@@ -111,6 +112,7 @@ int main(void) {
         minute = 0;
         Serial.println("Time set!");
       }
+      
     }
       
     switch (mode)
@@ -186,9 +188,9 @@ int main(void) {
         time_running = timeset - time_passed;
         time_running = constrain(time_running, 0, timeset);
         
-        if (time_running <= 0 && !done) {
-          Serial.println("Done!");
-          done = true;
+        // Sleep http://www.gammon.com.au/power
+        if (time_running <= 0) {
+          Going_To_Sleep();
 
         } else {
         
@@ -198,13 +200,9 @@ int main(void) {
               last_n = n;
               for (int j = 0; j < n; j++) {
                 strip.setPixelColor(j, color);
-                Serial.print(j);
-                Serial.println(" leds on");
               }
               for (int i = n; i <= 23; i++ ) {
                 strip.setPixelColor(i, 0, 0, 0);
-                Serial.print(i);
-                Serial.println(" leds off");
               }
             }
         }

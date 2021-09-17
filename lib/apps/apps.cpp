@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
+#include <avr/sleep.h>
 #include <apps.h>
+
 
 // Extern variables
 extern volatile int second, minute;
@@ -11,6 +13,7 @@ extern volatile unsigned long press_time, release_time, timer;
 
 extern int mode, counter;
 extern unsigned long time, last_time;
+extern bool init_setflag;
 
 // Local global variables
 int key = 2, s1 = 4, s2 = 3; // Rotary Encoder Pins
@@ -49,6 +52,7 @@ int modeSelect() {
   return mode;
 }
 
+// Interrupts
 
 void update() {
 
@@ -106,3 +110,45 @@ void click() {
       }
     }
 }
+
+void wakeUp(){
+  Serial.println("Interrrupt Fired");//Print message to serial monitor
+  sleep_disable();//Disable sleep mode
+  detachInterrupt(0); //Removes the interrupt from pin 2;
+}
+
+void Going_To_Sleep(){
+    detachInterrupt(digitalPinToInterrupt(s2));
+    detachInterrupt(digitalPinToInterrupt(key));
+    for (byte i = 0; i < 20; i++) {
+      if(i != 2) {
+        pinMode(i, OUTPUT);
+      }
+    }
+    // disable ADC
+    ADCSRA = 0;
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN); //full sleep, only wakeable from int or wdt
+    sleep_enable();//Enabling sleep mode
+    // Do not interrupt before we go to sleep, or the
+    // ISR will detach interrupts and we won't wake.
+    noInterrupts();
+    attachInterrupt(0, wakeUp, LOW);
+    EIFR = bit (INTF0);
+    // turn off brown-out enable in software
+    // BODS must be set to one and BODSE must be set to zero within four clock cycles
+    MCUCR = bit (BODS) | bit (BODSE);
+    // The BODS bit is automatically cleared after three clock cycles
+    MCUCR = bit (BODS); 
+    
+    // We are guaranteed that the sleep_cpu call will be done
+    // as the processor executes the next instruction after
+    // interrupts are turned on.
+    interrupts ();  // one cycle
+    sleep_cpu ();   // one cycle
+    pinMode(3, INPUT_PULLUP);
+    pinMode(4, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(s2), update, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(key), button, CHANGE);
+    counter = 0;
+    init_setflag = false;
+  }

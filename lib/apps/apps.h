@@ -18,3 +18,6 @@ void singleClick();
 
 void click();
 int modeSelect();
+
+void wakeUp();
+void Going_To_Sleep();
