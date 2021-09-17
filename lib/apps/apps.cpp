@@ -109,6 +109,8 @@ void click() {
     }
 }
 
+// SLEEP
+
 void wakeUp(){
   sleep_disable();
   detachInterrupt(0);

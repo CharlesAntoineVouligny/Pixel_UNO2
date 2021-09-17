@@ -1,4 +1,3 @@
-// Include Files
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <Adafruit_NeoPixel.h>
