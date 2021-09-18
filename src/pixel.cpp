@@ -3,14 +3,18 @@
 #include <Adafruit_NeoPixel.h>
 #include <avr/sleep.h>
 #include "apps.h"
+#ifdef __AVR__
+  #include <avr/power.h>
+#endif
 
-#define LED_PIN    A1
-#define LED_COUNT 24
-#define key 2
-#define s2 3
-#define s1 4
+#define LED_PIN     5
+#define LED_COUNT   24
+#define key         2
+#define s2          3
+#define s1          4
+
 // Objects declaration
-Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel pixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 // Global variables
 byte mode = 0, counter = 0, last_counter = 0;
@@ -20,6 +24,7 @@ long color, hue;
 unsigned long time;
 bool done = false;
 bool flag = true, init_setflag = false;
+
 // Interrupt variables
 volatile byte second = 0;
 volatile int minute = 0;
@@ -51,7 +56,7 @@ ISR(TIMER1_COMPA_vect) {
 }
 
 
-int main(void) {
+void setup() {
 
   Serial.begin(9600);
 
@@ -59,16 +64,16 @@ int main(void) {
   DDRB = (1 << 5); 
 
 // See Ben Finio tutorial on YouTube
+  TCCR1A = 0;
   TCCR1B |=(1 << WGM12);
-  OCR1A = 0xF9;  
+  OCR1A = 250;  
   TIMSK1 = 0B00000010;
   sei(); 
-  TCCR1B |=(1 << CS11);
-  TCCR1B |=(1 << CS10); 
+   // 64 prescale factor
+  TCCR1B |= (1 << CS10)|(1 << CS11); 
   
-  pinMode (s1, INPUT_PULLUP);
-  pinMode (s2, INPUT_PULLUP);
-  pinMode(key, INPUT_PULLUP);
+// set rotary encoder pins as INPUT_PULLUP
+  PORTD = 0b00011100;
 
   attachInterrupt(digitalPinToInterrupt(s2), update, CHANGE);
   attachInterrupt(digitalPinToInterrupt(key), button, CHANGE);
@@ -82,13 +87,21 @@ int main(void) {
     }
   hue = finish.lValue;
 
-  while(1) {
+  color = pixel.ColorHSV(hue, sat, bright);
+  // pixel.setBrightness(5);
+  pixel.begin();
+  pixel.show();
+  delay(10);
+}
+  void loop() {
     
     click();
 
     while(!init_setflag) {
       timeset = counter;
       click();
+      pixel.setPixelColor(timeset, color);
+      pixel.show();
       Serial.print(timeset);
       Serial.println(" minutes");
       if (shortpress) {
@@ -170,7 +183,7 @@ int main(void) {
       default:
         
         modeSelect();
-        color = strip.ColorHSV(hue, sat, bright);
+        color = pixel.ColorHSV(hue, sat, bright);
       //Increments time in variables minute and second
         timeKeeper();  
         time_passed = minute*60 + second;
@@ -187,13 +200,15 @@ int main(void) {
             if (n != last_n) {
               last_n = n;
               for (int j = 0; j < n; j++) {
-                strip.setPixelColor(j, color);
+                pixel.setPixelColor(j, color);
+                pixel.show();
               }
               for (int i = n; i <= 23; i++ ) {
-                strip.setPixelColor(i, 0, 0, 0);
+                pixel.setPixelColor(i, 0, 0, 0);
+                pixel.show();
               }
             }
         }
     }
   }
-}
+

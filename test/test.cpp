@@ -1,25 +1,212 @@
-  // disable ADC
-  ADCSRA = 0;  
-  
-  set_sleep_mode (SLEEP_MODE_PWR_DOWN);  
-  sleep_enable();
+#include <Arduino.h>
+#include <EEPROM.h>
+#include <Adafruit_NeoPixel.h>
+#include <avr/sleep.h>
+#include "apps.h"
+#ifdef __AVR__
+  #include <avr/power.h>
+#endif
 
-  // Do not interrupt before we go to sleep, or the
-  // ISR will detach interrupts and we won't wake.
-  noInterrupts ();
-  
-  // will be called when pin D2 goes low  
-  attachInterrupt (0, wake, FALLING);
-  EIFR = bit (INTF0);  // clear flag for interrupt 0
- 
-  // turn off brown-out enable in software
-  // BODS must be set to one and BODSE must be set to zero within four clock cycles
-  MCUCR = bit (BODS) | bit (BODSE);
-  // The BODS bit is automatically cleared after three clock cycles
-  MCUCR = bit (BODS); 
-  
-  // We are guaranteed that the sleep_cpu call will be done
-  // as the processor executes the next instruction after
-  // interrupts are turned on.
-  interrupts ();  // one cycle
-  sleep_cpu ();   // one cycle
+#define LED_PIN     5
+#define LED_COUNT   24
+#define key         2
+#define s2          3
+#define s1          4
+
+// Objects declaration
+Adafruit_NeoPixel pixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+
+// Global variables
+byte mode = 0, counter = 0, last_counter = 0;
+byte bright, sat, n, last_n;
+int  timeset, time_passed, time_running;
+long color, hue;
+unsigned long time;
+bool done = false;
+bool flag = true, init_setflag = false;
+
+// Interrupt variables
+volatile byte second = 0;
+volatile int minute = 0;
+volatile bool press_flag = false, press_flag2 = false;
+volatile bool release_flag = false, shortpress = false;
+volatile bool longpress = false;
+volatile unsigned long press_time, release_time;
+
+volatile unsigned long timer = 0;
+
+union u_conv
+{
+    long    lValue;
+    byte    lByte[4];
+        
+};
+
+u_conv
+    strt,
+    finish;
+
+// Internal interrupt for ms
+ISR(TIMER1_COMPA_vect) {
+    timer++;
+    if(timer % 1000 == 0){
+      PORTB ^= (1 << 5);
+      second++;
+    }
+}
+
+
+void setup() {
+
+  Serial.begin(9600);
+
+// Set internal LED to OUTPUT
+  DDRB = (1 << 5); 
+
+// See Ben Finio tutorial on YouTube
+  // noInterrupts();
+  TCCR1A = 0b00000000; 
+  TCCR1B |=(1 << WGM12);
+  OCR1A = 250;   //1 ms trigger (.001s/64*62,5x10^-9)
+  TIMSK1 = 0B00000010;
+  sei();
+  // 64 prescale factor
+  TCCR1B |= (1 << CS10)|(1 << CS11); 
+// set rotary encoder pins as INPUT_PULLUP
+  PORTD = 0b00011100;
+
+  attachInterrupt(digitalPinToInterrupt(s2), update, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(key), button, CHANGE);
+
+// Read parameters from EEPROM and reconstruct the hue from 4 bytes
+// using an union (see union_example.cpp in the examples folder)
+  bright = EEPROM.read(1);
+  sat = EEPROM.read(2);
+  for(int i = 3; i < 7; i++){
+        finish.lByte[i-3] = EEPROM.read(i);
+    }
+  hue = finish.lValue;
+  color = pixel.ColorHSV(hue, sat, bright);
+  // pixel.setBrightness(5);
+  pixel.begin();
+  pixel.show();
+  delay(10);
+}
+  void loop() {
+    
+    click();
+
+    while(!init_setflag) {
+      timeset = counter;
+      click();
+      pixel.setPixelColor(timeset, color);
+      pixel.show();
+      Serial.print(timeset);
+      Serial.println(" minutes");
+      if (shortpress) {
+        init_setflag = true;
+        shortpress = false;
+        longpress = false; // error-prevention line
+        timeset *= 60;
+        counter = 0;
+        second = 0;
+        minute = 0;
+        Serial.println("Time set!");
+      }
+      
+    }
+      
+    switch (mode)
+    {
+      case 1:
+        // Reset
+        Serial.println("Reset");
+        counter = 0;
+        mode = 0;
+        break;  
+
+      case 2:
+        // Brightness setting
+          counter = map(bright, 0, 255, 0, 50);
+        while(!shortpress) {
+          click();
+          bright = constrain(map(counter, 0, 50, 0 , 255), 0, 255);
+          Serial.print("Brightness: ");
+          Serial.println(bright);
+        }
+        EEPROM.update(1, bright);
+        shortpress = false;
+        mode++;
+        break;
+
+      case 3:
+        // Color setting
+          counter = map(hue, 0, 65536, 0, 50);
+        while (!shortpress) {
+          click();
+          hue = constrain(map(counter, 0, 50, 0, 65536), 0, 65536);
+          Serial.print("Hue value: ");
+          Serial.println(hue);
+        }
+        for (int i = 3; i < 7; i++){
+        finish.lByte[i-3] = EEPROM.read(i);
+        }
+        if (hue != finish.lValue) {
+          strt.lValue = hue;
+          for (int i = 3; i < 7; i++) {
+            EEPROM.write(i, strt.lByte[i-3]);
+          }
+        }
+        shortpress = false;
+        mode++;
+        break;
+      
+      case 4:
+        // Saturation setting
+          counter = map(sat, 0, 255, 0, 25);
+        while (!shortpress) {
+          click();
+          sat = constrain(map(counter, 0, 25, 0 , 250), 0, 255);
+          Serial.print("Saturation: ");
+          Serial.println(sat);
+        }
+        EEPROM.update(2, sat);
+        shortpress = false;
+        mode++;
+        break;
+      
+      case 5:
+        mode = 0;
+        break;
+
+      default:
+        
+        modeSelect();
+        color = pixel.ColorHSV(hue, sat, bright);
+      //Increments time in variables minute and second
+        timeKeeper();  
+        time_passed = minute*60 + second;
+        time_running = timeset - time_passed;
+        time_running = constrain(time_running, 0, timeset);
+        
+      // Sleep http://www.gammon.com.au/power
+        if (time_running <= 0) {
+          Going_To_Sleep();
+
+        } else {
+            n = constrain(map(time_running, 0, timeset, 0, 23), 0, 23);
+
+            if (n != last_n) {
+              last_n = n;
+              for (int j = 0; j < n; j++) {
+                pixel.setPixelColor(j, color);
+                pixel.show();
+              }
+              for (int i = n; i <= 23; i++ ) {
+                pixel.setPixelColor(i, 0, 0, 0);
+                pixel.show();
+              }
+            }
+        }
+    }
+  }
