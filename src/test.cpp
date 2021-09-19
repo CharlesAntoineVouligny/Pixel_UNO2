@@ -20,15 +20,18 @@ Adafruit_NeoPixel pixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 bool 
   done = false,
   flag = true, 
-  init_setflag = false;
+  init_setflag = false,
+  increment = false,
+  decrement = false;
 byte 
   mode = 0, 
   bright, 
   sat, 
   n, 
-  last_n;
+  last_n,
+  hourset = 0;
 int  
-  timeset, 
+  timeset = 0, 
   time_passed, 
   time_running, 
   last_counter = 0;
@@ -123,7 +126,44 @@ void setup() {
   
 }
   void loop() {
-  // Function to flag short and long presses
     click();
-
+    while(!init_setflag) {
+      click();
+      switch (counter) {
+          case 1:
+            increment = true;
+            counter = 0;
+            break;
+          case -1:
+            decrement = true;
+            counter = 0;
+            break;
+      }
+      if (increment) {
+        timeset++;
+        if (timeset % 60 == 0) {
+          hourset++;
+        }
+        increment = false;
+      }
+      if (decrement) {
+        timeset--;
+        if (timeset % 60 == 0) {
+          hourset--;
+        }
+        decrement = false;
+      }
+      
+      if (shortpress) {
+        init_setflag = true;
+        shortpress = false;
+        longpress = false; // error-prevention line
+        timeset *= 60;
+        counter = 0;
+        second = 0;
+        minute = 0;
+        Serial.println("Time set!");
+      }
+      
+    }
   }
