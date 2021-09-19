@@ -9,22 +9,37 @@
 #define s2 3
 #define s1 4
 
+// Extern object
+extern Adafruit_NeoPixel pixel;
+
 // Extern interrupt variables
 extern volatile byte second;
-extern volatile int minute;
+extern volatile int minute, counter;
 extern volatile bool press_flag, press_flag2, release_flag;
 extern volatile bool shortpress, longpress;
 extern volatile unsigned long press_time, release_time, timer;
 
 // Extern globals
-extern byte mode, counter;
-extern unsigned long time;
-extern bool init_setflag;
-
+extern byte 
+  mode, 
+  bright, 
+  sat;
+extern unsigned long 
+  time;
+extern bool 
+  init_setflag;
+extern long
+  hue,
+  elem,
+  comp,
+  tri1,
+  tri2,
+  scheme[24];
 // Local global
 int pinAstateCurrent = LOW;
 int pinAStateLast = pinAstateCurrent;
 int press = 0;
+
 
 void timeKeeper() {
   if(second > 59) {
@@ -147,4 +162,44 @@ void Going_To_Sleep(){
     attachInterrupt(digitalPinToInterrupt(key), button, CHANGE);
     counter = 0;
     init_setflag = false;
+  }
+
+  // MISC
+
+  void colors() {
+    comp = hue + 32768;
+    if (comp > pow(2,16)) {
+      comp -= pow(2,16);
+    }
+    tri1 = hue + pow(2,16) / 3;
+    if (tri1 > pow(2,16)) {
+      tri1 -= pow(2,16);
+    }
+    tri2 = hue - pow(2,16) / 3;
+    if (tri2 < 0) {
+      tri2 += pow(2,16);
+    }
+    elem = pixel.ColorHSV(hue, sat, bright);
+    comp = pixel.ColorHSV(comp, sat, bright);
+    tri1 = pixel.ColorHSV(tri1, sat, bright);
+    tri2 = pixel.ColorHSV(tri2, sat, bright);
+  }
+
+  int roundCounter(int max) {
+      if (counter > max) {
+        counter = 0;
+      } else if (counter < 0) {
+        counter = max;
+    }
+    return counter;
+  }
+
+  void clockArray() {
+  for (int i = 0; i < 24; i++) {
+    if (i == 0 || i == 6 || i == 12 || i == 18) {
+      scheme[i] = comp;
+    } else {
+      scheme[i] = elem;
+    }
+  }
   }

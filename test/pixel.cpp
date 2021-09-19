@@ -17,23 +17,46 @@
 Adafruit_NeoPixel pixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 // Global variables
-byte mode = 0, counter = 0, last_counter = 0;
-byte bright, sat, n, last_n;
-int  timeset, time_passed, time_running;
-long color, hue;
-unsigned long time;
-bool done = false;
-bool flag = true, init_setflag = false;
+bool 
+  done = false,
+  flag = true, 
+  init_setflag = false;
+byte 
+  mode = 0, 
+  bright, 
+  sat, 
+  n, 
+  last_n;
+int  
+  timeset, 
+  time_passed, 
+  time_running, 
+  last_counter = 0;
+long 
+  color, 
+  hue;
+unsigned long 
+  time;
+
 
 // Interrupt variables
-volatile byte second = 0;
-volatile int minute = 0;
-volatile bool press_flag = false, press_flag2 = false;
-volatile bool release_flag = false, shortpress = false;
-volatile bool longpress = false;
-volatile unsigned long press_time, release_time;
+volatile byte 
+  second = 0;
+volatile int 
+  minute = 0, 
+  counter = 0;
+volatile bool 
+  press_flag = false, 
+  press_flag2 = false, 
+  release_flag = false, 
+  shortpress = false, 
+  longpress = false;
+volatile unsigned long 
+  press_time, 
+  release_time;
 
-volatile unsigned long timer = 0;
+volatile unsigned long 
+  timer = 0;
 
 union u_conv
 {
@@ -64,14 +87,14 @@ void setup() {
   DDRB = (1 << 5); 
 
 // See Ben Finio tutorial on YouTube
-  // noInterrupts();
-  TCCR1A = 0b00000000; 
+  TCCR1A = 0;
   TCCR1B |=(1 << WGM12);
-  OCR1A = 250;   //1 ms trigger (.001s/64*62,5x10^-9)
+  OCR1A = 250;  
   TIMSK1 = 0B00000010;
-  sei();
-  // 64 prescale factor
+  sei(); 
+   // 64 prescale factor
   TCCR1B |= (1 << CS10)|(1 << CS11); 
+  
 // set rotary encoder pins as INPUT_PULLUP
   PORTD = 0b00011100;
 
@@ -86,8 +109,8 @@ void setup() {
         finish.lByte[i-3] = EEPROM.read(i);
     }
   hue = finish.lValue;
+
   color = pixel.ColorHSV(hue, sat, bright);
-  // pixel.setBrightness(5);
   pixel.begin();
   pixel.show();
   delay(10);
@@ -127,10 +150,10 @@ void setup() {
 
       case 2:
         // Brightness setting
-          counter = map(bright, 0, 255, 0, 50);
+          counter = map(bright, 0, 255, 0, 25);
         while(!shortpress) {
           click();
-          bright = constrain(map(counter, 0, 50, 0 , 255), 0, 255);
+          bright = constrain(map(counter, 0, 25, 0 , 255), 0, 255);
           Serial.print("Brightness: ");
           Serial.println(bright);
         }
@@ -210,3 +233,4 @@ void setup() {
         }
     }
   }
+
