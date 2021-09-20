@@ -13,11 +13,24 @@
 extern Adafruit_NeoPixel pixel;
 
 // Extern interrupt variables
-extern volatile byte second;
-extern volatile int minute, counter;
-extern volatile bool press_flag, press_flag2, release_flag;
-extern volatile bool shortpress, longpress;
-extern volatile unsigned long press_time, release_time, timer;
+extern volatile byte 
+  second;
+extern volatile int 
+  minute, 
+  counter;
+extern volatile bool 
+  press_flag, 
+  press_flag2, 
+  release_flag;
+extern volatile bool 
+  shortpress, 
+  longpress,
+  increment,
+  decrement;
+extern volatile unsigned long 
+  press_time, 
+  release_time, 
+  timer;
 
 // Extern globals
 extern byte 
@@ -81,8 +94,10 @@ void update() {
 
     if (digitalRead(s2) == HIGH) { 
       counter++;
+      increment = true;
     } else {
       counter--;
+      decrement = true;
     }
     
   }

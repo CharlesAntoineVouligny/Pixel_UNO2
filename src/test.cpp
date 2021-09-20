@@ -20,16 +20,15 @@ Adafruit_NeoPixel pixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 bool 
   done = false,
   flag = true, 
-  init_setflag = false,
-  increment = false,
-  decrement = false;
+  init_setflag = false;
 byte 
   mode = 0, 
   bright, 
   sat, 
   n, 
   last_n,
-  hourset = 0;
+  hourset = 0,
+  p_index;
 int  
   timeset = 0, 
   time_passed, 
@@ -58,7 +57,9 @@ volatile bool
   press_flag2 = false, 
   release_flag = false, 
   shortpress = false, 
-  longpress = false;
+  longpress = false,
+  increment = false,
+  decrement = false;
 volatile unsigned long 
   press_time, 
   release_time;
@@ -129,16 +130,7 @@ void setup() {
     click();
     while(!init_setflag) {
       click();
-      switch (counter) {
-          case 1:
-            increment = true;
-            counter = 0;
-            break;
-          case -1:
-            decrement = true;
-            counter = 0;
-            break;
-      }
+      
       if (increment) {
         timeset++;
         if (timeset % 60 == 0) {
@@ -146,14 +138,40 @@ void setup() {
         }
         increment = false;
       }
-      if (decrement) {
+      if (decrement && timeset != 0) {
         timeset--;
         if (timeset % 60 == 0) {
           hourset--;
         }
+        
         decrement = false;
       }
+      int minuteset = timeset - hourset*60;
+      minuteset = map(minuteset, 0, 60, 0 ,24);
       
+      for (int i = 0; i < 24; i++) {
+        if (i == minuteset) {
+          scheme[i] = elem;
+        }
+        else if ( i < hourset ) {
+          scheme[i] = tri1;
+        }
+        else if (i == 0 || i == 6 || i == 12 || i == 18) {
+          scheme[i] = tri2;
+        }
+        else {
+          scheme[i] = 0;
+        }
+        pixel.setPixelColor(i, scheme[i]);
+        pixel.show();
+      }
+      Serial.print("Hour Set: ");
+      Serial.print(hourset);
+      Serial.print("\tMinute Set: ");
+      Serial.print(minuteset);
+      Serial.print("\tTime Set: ");
+      Serial.println(timeset);
+
       if (shortpress) {
         init_setflag = true;
         shortpress = false;
