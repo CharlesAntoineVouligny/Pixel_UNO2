@@ -28,7 +28,8 @@ byte
   n, 
   last_n,
   hourset = 0,
-  p_index;
+  p_index,
+  h_index;
 int  
   timeset = 0, 
   time_passed, 
@@ -137,26 +138,60 @@ void setup() {
           hourset++;
         }
         increment = false;
+        decrement = false;
       }
-      if (decrement && timeset != 0) {
+      if (decrement && timeset > 1) {
         timeset--;
         if (timeset % 60 == 0) {
           hourset--;
         }
-        
+        increment = false;
         decrement = false;
       }
       int minuteset = timeset - hourset*60;
-      minuteset = map(minuteset, 0, 60, 0 ,24);
+      switch (minuteset)
+      {
+      case 0:
+        p_index = 0;
+        break;
+      case 1 ... 14:
+        p_index = map(minuteset, 0, 15, 0, 6);
+        p_index = exclusive(p_index, 0, 6);
+        break;
+      case 15:
+        p_index = 6;
+        break;
+      case 16 ... 29:
+        p_index = map(minuteset, 15, 30, 6, 12);
+        p_index = exclusive(p_index, 6, 12);
+        break;
+      case 30:
+        p_index = 12;
+        break;
+      case 31 ... 44:
+        p_index = map(minuteset, 30, 45, 12, 18);
+        p_index = exclusive(p_index, 12, 18);
+        break;
+      case 45:
+        p_index = 18;
+        break;
+      case 46 ... 59:
+        p_index = map(minuteset, 45, 60, 18, 24);
+        p_index = exclusive(p_index, 18, 24);
+        break;
+      }
+
+
       
       for (int i = 0; i < 24; i++) {
-        if (i == minuteset) {
+        if (i == p_index) {
           scheme[i] = elem;
         }
-        else if ( i < hourset ) {
+        else if (i < hourset) {
           scheme[i] = tri1;
+          
         }
-        else if (i == 0 || i == 6 || i == 12 || i == 18) {
+        else if (i % 2 == 0) {
           scheme[i] = tri2;
         }
         else {
@@ -169,6 +204,8 @@ void setup() {
       Serial.print(hourset);
       Serial.print("\tMinute Set: ");
       Serial.print(minuteset);
+      Serial.print("\tPixel Index: ");
+      Serial.print(p_index);
       Serial.print("\tTime Set: ");
       Serial.println(timeset);
 

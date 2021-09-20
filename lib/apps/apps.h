@@ -10,7 +10,9 @@ void Going_To_Sleep();
 
 long compHue();
 void triadicHue();
-int roundCounter(int max);
+int roundCounter(int);
 
 void clockArray();
 void colors();
+/// Make quarters exclusive
+int exclusive(byte, byte min, byte max);

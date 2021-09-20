@@ -218,3 +218,13 @@ void Going_To_Sleep(){
     }
   }
   }
+
+  int exclusive(byte p_index, byte min, byte max) {
+    if (p_index == min) {
+          p_index++;
+        }
+        else if (p_index == max) {
+          p_index--;
+        }
+    return p_index;
+  }
