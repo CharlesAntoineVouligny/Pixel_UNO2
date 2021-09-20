@@ -182,17 +182,18 @@ void setup() {
       }
 
 
-      
+      h_index = hourset*2 + 2;
       for (int i = 0; i < 24; i++) {
         if (i == p_index) {
           scheme[i] = elem;
         }
-        else if (i < hourset) {
-          scheme[i] = tri1;
-          
-        }
+        
         else if (i % 2 == 0) {
+          if ( i < h_index && i != 0) {
+            scheme[i] = tri1;
+          } else {
           scheme[i] = tri2;
+          }
         }
         else {
           scheme[i] = 0;
