@@ -140,11 +140,11 @@ void setup() {
         increment = false;
         decrement = false;
       }
-      if (decrement && timeset > 1) {
-        timeset--;
+      if (decrement && timeset >= 1) {
         if (timeset % 60 == 0) {
           hourset--;
         }
+        timeset--;
         increment = false;
         decrement = false;
       }
