@@ -20,23 +20,34 @@ Adafruit_NeoPixel pixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 bool 
   done = false,
   flag = true, 
-  init_setflag = false;
+  init_setflag = false,
+  setting = false;
 byte 
   mode = 0, 
   bright, 
   sat, 
   n, 
-  last_n;
+  last_n,
+  hourset = 0,
+  p_index,
+  h_index,
+  view_style;
 int  
-  timeset, 
+  timeset = 0, 
   time_passed, 
   time_running, 
-  last_counter = 0;
+  last_counter = 0,
+  presscount = 0;
 long 
-  color, 
-  hue;
+  hue,
+  elem,
+  comp,
+  tri1,
+  tri2,
+  scheme[24];
 unsigned long 
   time;
+
 
 
 // Interrupt variables
@@ -47,13 +58,18 @@ volatile int
   counter = 0;
 volatile bool 
   press_flag = false, 
-  press_flag2 = false, 
+  press_flag2 = false,
+  press_flag3 = false, 
   release_flag = false, 
-  shortpress = false, 
-  longpress = false;
+  shortpress = false,
+  doublepress = false, 
+  longpress = false,
+  increment = false,
+  decrement = false;
 volatile unsigned long 
   press_time, 
-  release_time;
+  release_time,
+  first_time;
 
 volatile unsigned long 
   timer = 0;
@@ -85,6 +101,7 @@ void setup() {
 
 // Set internal LED to OUTPUT
   DDRB = (1 << 5); 
+  DDRD = (1 << 6);
 
 // See Ben Finio tutorial on YouTube
   TCCR1A = 0;
@@ -95,8 +112,8 @@ void setup() {
    // 64 prescale factor
   TCCR1B |= (1 << CS10)|(1 << CS11); 
   
-// set rotary encoder pins as INPUT_PULLUP
-  PORTD = 0b00011100;
+// set rotary encoder pins as INPUT_PULLUP and enable neopixel
+  PORTD = 0b01011100;
 
   attachInterrupt(digitalPinToInterrupt(s2), update, CHANGE);
   attachInterrupt(digitalPinToInterrupt(key), button, CHANGE);
@@ -104,40 +121,42 @@ void setup() {
 // Read parameters from EEPROM and reconstruct the hue from 4 bytes
 // using an union (see union_example.cpp in the examples folder)
   bright = EEPROM.read(1);
-  sat = EEPROM.read(2);
+  sat = 250;
   for(int i = 3; i < 7; i++){
         finish.lByte[i-3] = EEPROM.read(i);
     }
   hue = finish.lValue;
 
-  color = pixel.ColorHSV(hue, sat, bright);
   pixel.begin();
-  pixel.show();
-  delay(10);
+  
+  // Calculate triadic colors based on color setting
+  colors();
+  
 }
   void loop() {
-    
     click();
-
     timeSet();
-      
+    modeSelect();
+    
     switch (mode)
     {
       case 1:
-        // Reset
-        Serial.println("Reset");
-        counter = 0;
+        // Swap between watch and continuous view styles
+        view_style = !view_style;
+        Serial.println(view_style);
         mode = 0;
+        
         break;  
 
       case 2:
         // Brightness setting
-          counter = map(bright, 0, 255, 0, 25);
-        while(!shortpress) {
+        counter = map(bright, 0, 255, 0, 50);
+          while(!shortpress) {
           click();
-          bright = constrain(map(counter, 0, 25, 0 , 255), 0, 255);
+          bright = constrain(map(counter, 0, 50, 0 , 255), 0, 255);
           Serial.print("Brightness: ");
           Serial.println(bright);
+          settingDisplay();
         }
         EEPROM.update(1, bright);
         shortpress = false;
@@ -152,6 +171,7 @@ void setup() {
           hue = constrain(map(counter, 0, 50, 0, 65536), 0, 65536);
           Serial.print("Hue value: ");
           Serial.println(hue);
+          settingDisplay();
         }
         for (int i = 3; i < 7; i++){
         finish.lByte[i-3] = EEPROM.read(i);
@@ -174,6 +194,7 @@ void setup() {
           sat = constrain(map(counter, 0, 25, 0 , 250), 0, 255);
           Serial.print("Saturation: ");
           Serial.println(sat);
+          settingDisplay();
         }
         EEPROM.update(2, sat);
         shortpress = false;
@@ -187,7 +208,6 @@ void setup() {
       default:
         
         modeSelect();
-        color = pixel.ColorHSV(hue, sat, bright);
       //Increments time in variables minute and second
         timeKeeper();  
         time_passed = minute*60 + second;
@@ -199,20 +219,7 @@ void setup() {
           Going_To_Sleep();
 
         } else {
-            n = constrain(map(time_running, 0, timeset, 0, 23), 0, 23);
-
-            if (n != last_n) {
-              last_n = n;
-              for (int j = 0; j < n; j++) {
-                pixel.setPixelColor(j, color);
-                pixel.show();
-              }
-              for (int i = n; i <= 23; i++ ) {
-                pixel.setPixelColor(i, 0, 0, 0);
-                pixel.show();
-              }
-            }
+            display();
         }
     }
   }
-

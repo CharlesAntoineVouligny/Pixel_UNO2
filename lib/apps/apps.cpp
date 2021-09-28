@@ -41,14 +41,18 @@ extern byte
   sat,
   hourset,
   p_index,
-  h_index;
+  h_index,
+  n,
+  last_n;
 extern int
   timeset,
+  time_running,
   presscount;
 extern unsigned long 
   time;
 extern bool 
-  init_setflag;
+  init_setflag,
+  setting;
 extern long
   hue,
   elem,
@@ -60,6 +64,9 @@ extern long
 int pinAstateCurrent = LOW;
 int pinAStateLast = pinAstateCurrent;
 int press = 0;
+
+bool
+  first = true;
 
 
 void timeKeeper() {
@@ -77,22 +84,27 @@ void button() {
   }
 }
 
-int modeSelect() {
+void modeSelect() {
   if (shortpress) {
     Serial.println("Short Press!");
     shortpress = false;
+    mode++;
   }
   else if(doublepress) {
     Serial.println("Double Press!");
     doublepress = false;
+    mode = 2;
   }
   else if (longpress) {
     Serial.println("Long Press!");
     longpress = false;
-  }
-  
+    // Reset
+    Serial.println("Reset");
+        init_setflag = false;
+        
 
-  return mode;
+  }
+
 }
 
 // Interrupts
@@ -151,6 +163,7 @@ void click() {
         presscount++;
       }
     }
+    //After a set delay(300ms is fine), uC sorts double from single clicks
     if (timer - release_time >= 300) {
       switch (presscount)
       {
@@ -163,11 +176,7 @@ void click() {
         presscount = 0;
         break;
 
-
       default:
-        if (presscount) {
-        Serial.println(presscount);
-        }
         presscount = 0;
         break;
       }
@@ -183,6 +192,10 @@ void wakeUp(){
 }
 
 void Going_To_Sleep(){
+  // make sure NeoPixels are off
+  pixel.clear();
+  pixel.show();
+  delay(10);
 // See http://www.gammon.com.au/power or sleep example
     detachInterrupt(digitalPinToInterrupt(s2));
     detachInterrupt(digitalPinToInterrupt(key));
@@ -208,11 +221,11 @@ void Going_To_Sleep(){
     sleep_cpu ();  
   // wakey wakey
     DDRD = 0b11100011;
-    PORTD = 0b00011100;
+    PORTD = 0b01011100;
     attachInterrupt(digitalPinToInterrupt(s2), update, CHANGE);
     attachInterrupt(digitalPinToInterrupt(key), button, CHANGE);
-    counter = 0;
     init_setflag = false;
+
   }
 
   // MISC
@@ -266,8 +279,17 @@ void Going_To_Sleep(){
   }
 
   void timeSet() {
+    
     while(!init_setflag) {
       click();
+      // if it's the first time through the loop, make sure
+      // everything's at 0
+      if (first) {
+        first = !first;
+        timeset = 0;
+        hourset = 0;
+      }
+
       // Setting time from rotary encoder interrupts
       if (increment) {
         timeset++;
@@ -350,14 +372,50 @@ void Going_To_Sleep(){
 
       if (shortpress) {
         init_setflag = true;
+        first = true;
         shortpress = false;
+        doublepress = false;
         longpress = false; // error-prevention line
         timeset *= 60;
         counter = 0;
         second = 0;
         minute = 0;
-        Serial.println("Time set!");
+        mode = 0;
+        time_running = 0;
+        last_n = 0;
+        // Serial.println("Time set!");
       }
       
     }
+  }
+
+  void settingDisplay() {
+    colors();
+    pixel.fill(tri1, 0 ,8);
+    pixel.show();
+    pixel.fill(elem, 8, 8);
+    pixel.show();
+    pixel.fill(tri2, 16, 8);
+    pixel.show();
+
+  }
+    
+
+    
+  void display() {
+    
+     n = constrain(map(time_running, 0, timeset, 0, 25), 0, 24);
+
+            if (n != last_n) {
+              last_n = n;
+              for (int j = 0; j < n; j++) {
+                pixel.setPixelColor(j, elem);
+                pixel.show();
+              }
+              for (int i = n; i <= 23; i++ ) {
+                pixel.setPixelColor(i, 0, 0, 0);
+                pixel.show();
+              }
+            }
+    
   }

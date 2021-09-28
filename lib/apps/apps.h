@@ -1,6 +1,6 @@
 void timeKeeper();
 void button();
-int modeSelect();
+void modeSelect();
 
 void update();
 void click();
@@ -18,3 +18,5 @@ void colors();
 int exclusive(byte, byte min, byte max);
 ///Set the time
 void timeSet();
+void display();
+void settingDisplay();

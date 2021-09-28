@@ -20,7 +20,8 @@ Adafruit_NeoPixel pixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 bool 
   done = false,
   flag = true, 
-  init_setflag = false;
+  init_setflag = false,
+  setting = false;
 byte 
   mode = 0, 
   bright, 
@@ -29,7 +30,8 @@ byte
   last_n,
   hourset = 0,
   p_index,
-  h_index;
+  h_index,
+  view_style;
 int  
   timeset = 0, 
   time_passed, 
@@ -98,7 +100,9 @@ void setup() {
   Serial.begin(9600);
 
 // Set internal LED to OUTPUT
-  DDRB = (1 << 5); 
+  DDRB = (1 << 5);
+  DDRD = (1 << 5);
+  DDRD |= (1 << 6);
 
 // See Ben Finio tutorial on YouTube
   TCCR1A = 0;
@@ -109,8 +113,8 @@ void setup() {
    // 64 prescale factor
   TCCR1B |= (1 << CS10)|(1 << CS11); 
   
-// set rotary encoder pins as INPUT_PULLUP
-  PORTD = 0b00011100;
+// set rotary encoder pins as INPUT_PULLUP and enable neopixel
+  PORTD = 0b01011100;
 
   attachInterrupt(digitalPinToInterrupt(s2), update, CHANGE);
   attachInterrupt(digitalPinToInterrupt(key), button, CHANGE);
@@ -118,20 +122,19 @@ void setup() {
 // Read parameters from EEPROM and reconstruct the hue from 4 bytes
 // using an union (see union_example.cpp in the examples folder)
   bright = EEPROM.read(1);
-  sat = 250;
+  sat = EEPROM.read(2);
   for(int i = 3; i < 7; i++){
         finish.lByte[i-3] = EEPROM.read(i);
     }
   hue = finish.lValue;
 
   pixel.begin();
-  pixel.show();
   
   // Calculate triadic colors based on color setting
   colors();
+ 
+}
+
+void loop() {
   
 }
-  void loop() {
-    click();
-    modeSelect();
-  }
