@@ -34,7 +34,8 @@ int
   timeset = 0, 
   time_passed, 
   time_running, 
-  last_counter = 0;
+  last_counter = 0,
+  presscount = 0;
 long 
   hue,
   elem,
@@ -55,15 +56,18 @@ volatile int
   counter = 0;
 volatile bool 
   press_flag = false, 
-  press_flag2 = false, 
+  press_flag2 = false,
+  press_flag3 = false, 
   release_flag = false, 
-  shortpress = false, 
+  shortpress = false,
+  doublepress = false, 
   longpress = false,
   increment = false,
   decrement = false;
 volatile unsigned long 
   press_time, 
-  release_time;
+  release_time,
+  first_time;
 
 volatile unsigned long 
   timer = 0;
@@ -120,106 +124,14 @@ void setup() {
     }
   hue = finish.lValue;
 
-  
   pixel.begin();
   pixel.show();
   
+  // Calculate triadic colors based on color setting
   colors();
   
 }
   void loop() {
     click();
-    while(!init_setflag) {
-      click();
-      
-      if (increment) {
-        timeset++;
-        if (timeset % 60 == 0) {
-          hourset++;
-        }
-        increment = false;
-        decrement = false;
-      }
-      if (decrement && timeset >= 1) {
-        if (timeset % 60 == 0) {
-          hourset--;
-        }
-        timeset--;
-        increment = false;
-        decrement = false;
-      }
-      int minuteset = timeset - hourset*60;
-      switch (minuteset)
-      {
-      case 0:
-        p_index = 0;
-        break;
-      case 1 ... 14:
-        p_index = map(minuteset, 0, 15, 0, 6);
-        p_index = exclusive(p_index, 0, 6);
-        break;
-      case 15:
-        p_index = 6;
-        break;
-      case 16 ... 29:
-        p_index = map(minuteset, 15, 30, 6, 12);
-        p_index = exclusive(p_index, 6, 12);
-        break;
-      case 30:
-        p_index = 12;
-        break;
-      case 31 ... 44:
-        p_index = map(minuteset, 30, 45, 12, 18);
-        p_index = exclusive(p_index, 12, 18);
-        break;
-      case 45:
-        p_index = 18;
-        break;
-      case 46 ... 59:
-        p_index = map(minuteset, 45, 60, 18, 24);
-        p_index = exclusive(p_index, 18, 24);
-        break;
-      }
-
-
-      h_index = hourset*2 + 2;
-      for (int i = 0; i < 24; i++) {
-        if (i == p_index) {
-          scheme[i] = elem;
-        }
-        
-        else if (i % 2 == 0) {
-          if ( i < h_index && i != 0) {
-            scheme[i] = tri1;
-          } else {
-          scheme[i] = tri2;
-          }
-        }
-        else {
-          scheme[i] = 0;
-        }
-        pixel.setPixelColor(i, scheme[i]);
-        pixel.show();
-      }
-      Serial.print("Hour Set: ");
-      Serial.print(hourset);
-      Serial.print("\tMinute Set: ");
-      Serial.print(minuteset);
-      Serial.print("\tPixel Index: ");
-      Serial.print(p_index);
-      Serial.print("\tTime Set: ");
-      Serial.println(timeset);
-
-      if (shortpress) {
-        init_setflag = true;
-        shortpress = false;
-        longpress = false; // error-prevention line
-        timeset *= 60;
-        counter = 0;
-        second = 0;
-        minute = 0;
-        Serial.println("Time set!");
-      }
-      
-    }
+    modeSelect();
   }

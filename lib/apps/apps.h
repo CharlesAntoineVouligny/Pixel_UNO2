@@ -16,3 +16,5 @@ void clockArray();
 void colors();
 /// Make quarters exclusive
 int exclusive(byte, byte min, byte max);
+///Set the time
+void timeSet();

@@ -20,23 +20,31 @@ extern volatile int
   counter;
 extern volatile bool 
   press_flag, 
-  press_flag2, 
-  release_flag;
-extern volatile bool 
-  shortpress, 
+  press_flag2,
+  press_flag3, 
+  release_flag, 
+  shortpress,
+  doublepress, 
   longpress,
   increment,
   decrement;
 extern volatile unsigned long 
   press_time, 
-  release_time, 
+  release_time,
+  first_time, 
   timer;
 
 // Extern globals
 extern byte 
   mode, 
   bright, 
-  sat;
+  sat,
+  hourset,
+  p_index,
+  h_index;
+extern int
+  timeset,
+  presscount;
 extern unsigned long 
   time;
 extern bool 
@@ -71,13 +79,18 @@ void button() {
 
 int modeSelect() {
   if (shortpress) {
-    mode++;
+    Serial.println("Short Press!");
     shortpress = false;
   }
+  else if(doublepress) {
+    Serial.println("Double Press!");
+    doublepress = false;
+  }
   else if (longpress) {
-    mode = 2;
+    Serial.println("Long Press!");
     longpress = false;
   }
+  
 
   return mode;
 }
@@ -115,28 +128,51 @@ void click() {
       press_time = timer;
       press_flag = false;
       press_flag2 = true;
-      PORTD ^= (1 << 7);
     }
     //if its been more than 850ms
-    else if(timer - press_time > 850 && press_flag2) {
+    if(timer - press_time > 850 && press_flag2) {
 
         longpress = true;
         press_flag2 = false;
         
     }
     //if it's been less
-    else if(release_flag) {
+    if(release_flag) {
 
       release_time = timer;
       release_flag = false;
       
-      if((release_time - press_time) > 50 && (release_time - press_time) < 800)
+      //single click flag
+      if((release_time - press_time) > 50 && 
+      (release_time - press_time) < 500)
       {
-        shortpress = true;
         press_flag = false;
         press_flag2 = false;
+        presscount++;
       }
     }
+    if (timer - release_time >= 300) {
+      switch (presscount)
+      {
+      case 1:
+        shortpress = true;
+        presscount = 0;
+        break;
+      case 2 ... 5:
+        doublepress = true;
+        presscount = 0;
+        break;
+
+
+      default:
+        if (presscount) {
+        Serial.println(presscount);
+        }
+        presscount = 0;
+        break;
+      }
+    }
+    
 }
 
 // SLEEP
@@ -227,4 +263,101 @@ void Going_To_Sleep(){
           p_index--;
         }
     return p_index;
+  }
+
+  void timeSet() {
+    while(!init_setflag) {
+      click();
+      // Setting time from rotary encoder interrupts
+      if (increment) {
+        timeset++;
+        if (timeset % 60 == 0) {
+          hourset++;
+        }
+        increment = false;
+        decrement = false;
+      }
+      if (decrement && timeset >= 1) {
+        if (timeset % 60 == 0) {
+          hourset--;
+        }
+        timeset--;
+        increment = false;
+        decrement = false;
+      }
+      int minuteset = timeset - hourset*60;
+      // Live display
+      switch (minuteset)
+      {
+      case 0:
+        p_index = 0;
+        break;
+      case 1 ... 14:
+        p_index = map(minuteset, 0, 15, 0, 6);
+        p_index = exclusive(p_index, 0, 6);
+        break;
+      case 15:
+        p_index = 6;
+        break;
+      case 16 ... 29:
+        p_index = map(minuteset, 15, 30, 6, 12);
+        p_index = exclusive(p_index, 6, 12);
+        break;
+      case 30:
+        p_index = 12;
+        break;
+      case 31 ... 44:
+        p_index = map(minuteset, 30, 45, 12, 18);
+        p_index = exclusive(p_index, 12, 18);
+        break;
+      case 45:
+        p_index = 18;
+        break;
+      case 46 ... 59:
+        p_index = map(minuteset, 45, 60, 18, 24);
+        p_index = exclusive(p_index, 18, 24);
+        break;
+      }
+
+
+      h_index = hourset*2 + 2;
+      for (int i = 0; i < 24; i++) {
+        if (i == p_index) {
+          scheme[i] = tri2;
+        }
+        
+        else if (i % 2 == 0) {
+          if ( i < h_index && i != 0) {
+            scheme[i] = tri1;
+          } else {
+          scheme[i] = elem;
+          }
+        }
+        else {
+          scheme[i] = 0;
+        }
+        pixel.setPixelColor(i, scheme[i]);
+        pixel.show();
+      }
+      Serial.print("Hour Set: ");
+      Serial.print(hourset);
+      Serial.print("\tMinute Set: ");
+      Serial.print(minuteset);
+      Serial.print("\tPixel Index: ");
+      Serial.print(p_index);
+      Serial.print("\tTime Set: ");
+      Serial.println(timeset);
+
+      if (shortpress) {
+        init_setflag = true;
+        shortpress = false;
+        longpress = false; // error-prevention line
+        timeset *= 60;
+        counter = 0;
+        second = 0;
+        minute = 0;
+        Serial.println("Time set!");
+      }
+      
+    }
   }
