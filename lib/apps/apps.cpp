@@ -100,12 +100,14 @@ void modeSelect() {
     Serial.println("Long Press!");
     longpress = false;
     // Reset
-    Serial.println("Reset");
-        init_setflag = false;
-        
-
+    // Serial.println("Reset");
+    init_setflag = false;
+    for (uint8_t i = 24; i > 0; i--) {
+      pixel.setPixelColor(i, 0);
+      pixel.show();
+      delay(25);
+    }
   }
-
 }
 
 // Interrupts
@@ -226,6 +228,7 @@ void Going_To_Sleep(){
     attachInterrupt(digitalPinToInterrupt(s2), update, CHANGE);
     attachInterrupt(digitalPinToInterrupt(key), button, CHANGE);
     init_setflag = false;
+    
 
   }
 
@@ -289,6 +292,18 @@ void Going_To_Sleep(){
         first = !first;
         timeset = 0;
         hourset = 0;
+        // Animation
+        for(uint8_t i = 0; i < 24; i++) {
+          if (i == 0) {
+            pixel.setPixelColor(i, tri2);
+          }
+          else if (i % 2 == 0) {
+            pixel.setPixelColor(i, elem);
+          }
+          pixel.show();
+          delay(25);
+        }
+        increment = false;
       }
 
       // Setting time from rotary encoder interrupts
@@ -362,16 +377,16 @@ void Going_To_Sleep(){
         pixel.setPixelColor(i, scheme[i]);
         pixel.show();
       }
-      Serial.print("Hour Set: ");
-      Serial.print(hourset);
-      Serial.print("\tMinute Set: ");
-      Serial.print(minuteset);
-      Serial.print("\tPixel Index: ");
-      Serial.print(p_index);
-      Serial.print("\tTime Set: ");
-      Serial.println(timeset);
+      // Serial.print("Hour Set: ");
+      // Serial.print(hourset);
+      // Serial.print("\tMinute Set: ");
+      // Serial.print(minuteset);
+      // Serial.print("\tPixel Index: ");
+      // Serial.print(p_index);
+      // Serial.print("\tTime Set: ");
+      // Serial.println(timeset);
 
-      if (shortpress) {
+      if (shortpress || doublepress || longpress) {
         init_setflag = true;
         first = true;
         shortpress = false;
@@ -384,10 +399,35 @@ void Going_To_Sleep(){
         mode = 0;
         time_running = 0;
         last_n = 0;
-        // Serial.println("Time set!");
+        view_style = false;
+        
+        byte anim[2][24] = {
+          {0,0,0,0,0,0,0,0,0,0,0,0},
+          {0,0,0,0,0,0,0,0,0,0,0,0}
+        };
+        if (p_index != 0) {
+          for (uint8_t i = 0; i < 24; i++) {
+            
+            if (i < p_index) {
+              anim[1][i] = p_index - i;
+            } 
+            if (p_index + i < 24) {
+              anim[0][i] = p_index +i;
+            }
+          }
+
+          for (uint8_t i = 0; i < 24; i++) {
+            pixel.setPixelColor(p_index, tri2);
+            pixel.show();
+            pixel.setPixelColor(anim[0][i],elem);
+            pixel.show();
+            pixel.setPixelColor(anim[1][i], elem);
+            pixel.show();
+            delay(25);
+          }
+        }
       }
-      
-    }
+    } 
   }
 
   void settingDisplay() {

@@ -142,10 +142,9 @@ void setup() {
     {
       case 1:
         // Swap between watch and continuous view styles
+        shortpress = false;
         view_style = !view_style;
-        Serial.println(view_style);
         mode = 0;
-        
         break;  
 
       case 2:
@@ -206,7 +205,7 @@ void setup() {
         break;
 
       default:
-        
+        click();
         modeSelect();
       //Increments time in variables minute and second
         timeKeeper();  

@@ -1,8 +1,6 @@
-counter = map(bright, 0, 255, 0, 25);
-          while(!shortpress) {
-          click();
-          bright = constrain(map(counter, 0, 25, 0 , 255), 0, 255);
-          Serial.print("Brightness: ");
-          Serial.println(bright);
-          settingDisplay();
+for(uint8_t i = 0; i < 28; i++) {
+          pixel.setPixelColor(i, elem); // Draw new pixel
+          pixel.setPixelColor(i-4, 0); // Erase pixel a few steps back
+          pixel.show();
           delay(25);
+        }

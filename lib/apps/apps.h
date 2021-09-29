@@ -20,3 +20,6 @@ int exclusive(byte, byte min, byte max);
 void timeSet();
 void display();
 void settingDisplay();
+void chase();
+void blink();
+void inverted_chase();

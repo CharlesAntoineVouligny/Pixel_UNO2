@@ -132,9 +132,12 @@ void setup() {
   
   // Calculate triadic colors based on color setting
   colors();
- 
+  
+  
+  
+  
 }
 
 void loop() {
-  
+
 }
