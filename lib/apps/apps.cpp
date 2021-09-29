@@ -52,7 +52,8 @@ extern unsigned long
   time;
 extern bool 
   init_setflag,
-  setting;
+  setting,
+  view_style;
 extern long
   hue,
   elem,
@@ -403,7 +404,7 @@ void Going_To_Sleep(){
 
     
   void display() {
-    
+    if (!view_style) {
      n = constrain(map(time_running, 0, timeset, 0, 25), 0, 24);
 
             if (n != last_n) {
@@ -417,5 +418,34 @@ void Going_To_Sleep(){
                 pixel.show();
               }
             }
-    
+    } else {
+      int hour2 = time_running/3600;
+      int sec2 = time_running%3600;
+      int min2 = sec2/60;
+      sec2 = sec2%60;
+      
+      hour2 *= 2;
+      min2 = map(min2, 0, 60, 0, 24);
+      sec2 = map(sec2, 0, 60, 0, 24);
+
+      for (int i = 0; i < 24; i++) {
+        if (i == sec2) {
+          scheme[i] = tri2;
+        }
+        else if (i == min2) {
+          scheme[i] = tri1;
+        }
+        else if (i == hour2 && i != 0) {
+          scheme[i] = comp;
+        }
+        else if (i % 2 == 0) {
+          scheme[i] = elem;
+          }
+        else {
+          scheme[i] = 0;
+        }
+        pixel.setPixelColor(i, scheme[i]);
+        pixel.show();
+      }
+    }
   }

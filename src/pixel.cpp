@@ -31,7 +31,7 @@ byte
   hourset = 0,
   p_index,
   h_index,
-  view_style;
+  view_style = false;
 int  
   timeset = 0, 
   time_passed, 
