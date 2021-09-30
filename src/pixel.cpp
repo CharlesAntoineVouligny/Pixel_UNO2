@@ -21,7 +21,8 @@ bool
   done = false,
   flag = true, 
   init_setflag = false,
-  setting = false;
+  setting = false,
+  display_flag = false;
 byte 
   mode = 0, 
   bright, 
@@ -140,38 +141,48 @@ Serial.begin(9600);
     switch (mode)
     {
       case 1:
+         
         // Swap between watch and continuous view styles
-        
-        
-        
-        if (shortpress) {
-          shortpress = false;
-          mode = 0;
+      click();
+       if (!shortpress) {
+        clockStyle();
         } else {
-            click();
-            clockStyle();
+          shortpress = false;
+          display_flag = true;
+          mode = 0;
         }
+        
         break;  
 
       case 2:
         // Brightness setting
+         
+
         counter = map(bright, 0, 255, 0, 50);
           while(!shortpress) {
+         
+
           click();
           bright = constrain(map(counter, 0, 50, 0 , 255), 0, 255);
           
           settingDisplay();
         }
+        if (bright != 0) {
         EEPROM.update(1, bright);
+        }
         shortpress = false;
         mode++;
         break;
 
       case 3:
         // Color setting
+         
+
           counter = map(hue, 0, 65536, 0, 50);
         while (!shortpress) {
           click();
+         
+
           hue = constrain(map(counter, 0, 50, 0, 65536), 0, 65536);
          
           settingDisplay();
@@ -190,10 +201,14 @@ Serial.begin(9600);
         break;
       
       case 4:
+         
+
         // Saturation setting
           counter = map(sat, 0, 255, 0, 25);
         while (!shortpress) {
           click();
+         
+
           sat = constrain(map(counter, 0, 25, 0 , 250), 0, 255);
           
           settingDisplay();
@@ -204,11 +219,15 @@ Serial.begin(9600);
         break;
       
       case 5:
+         
+
         mode = 0;
         break;
 
       default:
+         
         click();
+        display();
         if (shortpress) {
           shortpress = false;
           mode++;
@@ -219,13 +238,9 @@ Serial.begin(9600);
         time_passed = minute*60 + second;
         time_running = timeset - time_passed;
         time_running = constrain(time_running, 0, timeset);
-        
       // Sleep http://www.gammon.com.au/power
         if (time_running <= 0) {
           Going_To_Sleep();
-
-        } else {
-            display();
         }
     }
   }

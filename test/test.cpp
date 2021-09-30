@@ -133,7 +133,7 @@ void setup() {
   // Calculate triadic colors based on color setting
   colors();
   
-  
+  EEPROM.write(1, 20);
   
   
 }

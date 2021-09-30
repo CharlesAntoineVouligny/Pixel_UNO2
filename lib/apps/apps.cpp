@@ -53,7 +53,8 @@ extern unsigned long
 extern bool 
   init_setflag,
   setting,
-  view_style;
+  view_style,
+  display_flag;
 extern long
   hue,
   elem,
@@ -68,6 +69,13 @@ int press = 0;
 
 bool
   first = true;
+uint8_t 
+  last_second = 0,
+  s_index = 23;
+uint16_t
+  hour2,
+  sec2,
+  min2;
 
 
 void timeKeeper() {
@@ -142,6 +150,7 @@ void click() {
     if(timer - press_time > 850 && press_flag2) {
 
         longpress = true;
+        
         press_flag2 = false;
         
     }
@@ -153,7 +162,7 @@ void click() {
       
       //single click flag
       if((release_time - press_time) > 50 && 
-      (release_time - press_time) < 500)
+      (release_time - press_time) < 300)
       {
         press_flag = false;
         press_flag2 = false;
@@ -433,8 +442,9 @@ void Going_To_Sleep(){
     
      n = constrain(map(time_running, 0, timeset, 0, 25), 0, 24);
 
-      if (n != last_n) {
+      if (n != last_n || display_flag) {
         last_n = n;
+        display_flag = false;
         for (int j = 0; j < n; j++) {
           pixel.setPixelColor(j, elem);
           pixel.show();
@@ -450,33 +460,50 @@ void Going_To_Sleep(){
   }
 
   void clockStyle() {
-    uint16_t hour2 = time_running/3600;
-    uint16_t sec2 = time_running%3600;
-    uint16_t min2 = sec2/60;
-    sec2 = sec2%60;
-    
+    hour2 = time_running/3600;
+    sec2 = time_running%3600;
+    min2 = sec2/60;
     hour2 *= 2;
     min2 = map(min2, 0, 60, 0, 24);
-    sec2 = map(sec2, 0, 60, 0, 24);
-
-    for (uint16_t i = 0; i < 24; i++) {
-      
-      if (i == sec2) {
-        scheme[i] = tri2;
+    
+    // Update clock every second
+    if (last_second != second) {
+      last_second = second;
+      s_index--;
+      if (s_index <= 0) {
+        s_index = 23;
       }
-      else if (i == min2) {
-        scheme[i] = tri1;
-      }
-      else if (i == hour2 && i != 0) {
-        scheme[i] = comp;
-      }
-      else if (i % 2 == 0) {
-        scheme[i] = elem;
+      for (uint8_t i = 0; i < 24; i++) {
+        
+        if (i == s_index) {
+          scheme[i] = tri2;
         }
-      else {
-        scheme[i] = 0;
+        else if (i == min2) {
+          scheme[i] = tri1;
+        }
+        else if (i == hour2 && i != 0) {
+          scheme[i] = comp;
+        }
+        else if (i % 2 == 0) {
+          scheme[i] = elem;
+          }
+        else {
+          scheme[i] = 0;
+        }
+        pixel.setPixelColor(i, scheme[i]);
+        pixel.show();
       }
-      pixel.setPixelColor(i, scheme[i]);
-      pixel.show();
+    }
+  }
+
+  void trackPresses() {
+    if (shortpress) {
+      Serial.println("Short!");
+    }
+    else if(longpress) {
+      Serial.println("Long!");
+    }
+    else if (doublepress) {
+      Serial.println("Double!");
     }
   }
