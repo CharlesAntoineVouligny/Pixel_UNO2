@@ -23,3 +23,4 @@ void settingDisplay();
 void chase();
 void blink();
 void inverted_chase();
+void clockStyle();

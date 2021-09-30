@@ -3,7 +3,7 @@
 #include <avr/sleep.h>
 #include <apps.h>
 
-#define LED_PIN    A1
+#define LED_PIN    8
 #define LED_COUNT 24
 #define key 2
 #define s2 3
@@ -86,21 +86,15 @@ void button() {
 }
 
 void modeSelect() {
-  if (shortpress) {
-    Serial.println("Short Press!");
-    shortpress = false;
-    mode++;
-  }
-  else if(doublepress) {
-    Serial.println("Double Press!");
+  
+  if(doublepress) {
     doublepress = false;
     mode = 2;
   }
   else if (longpress) {
-    Serial.println("Long Press!");
     longpress = false;
     // Reset
-    // Serial.println("Reset");
+    
     init_setflag = false;
     for (uint8_t i = 24; i > 0; i--) {
       pixel.setPixelColor(i, 0);
@@ -377,14 +371,6 @@ void Going_To_Sleep(){
         pixel.setPixelColor(i, scheme[i]);
         pixel.show();
       }
-      // Serial.print("Hour Set: ");
-      // Serial.print(hourset);
-      // Serial.print("\tMinute Set: ");
-      // Serial.print(minuteset);
-      // Serial.print("\tPixel Index: ");
-      // Serial.print(p_index);
-      // Serial.print("\tTime Set: ");
-      // Serial.println(timeset);
 
       if (shortpress || doublepress || longpress) {
         init_setflag = true;
@@ -444,48 +430,53 @@ void Going_To_Sleep(){
 
     
   void display() {
-    if (!view_style) {
+    
      n = constrain(map(time_running, 0, timeset, 0, 25), 0, 24);
 
-            if (n != last_n) {
-              last_n = n;
-              for (int j = 0; j < n; j++) {
-                pixel.setPixelColor(j, elem);
-                pixel.show();
-              }
-              for (int i = n; i <= 23; i++ ) {
-                pixel.setPixelColor(i, 0, 0, 0);
-                pixel.show();
-              }
-            }
-    } else {
-      int hour2 = time_running/3600;
-      int sec2 = time_running%3600;
-      int min2 = sec2/60;
-      sec2 = sec2%60;
-      
-      hour2 *= 2;
-      min2 = map(min2, 0, 60, 0, 24);
-      sec2 = map(sec2, 0, 60, 0, 24);
-
-      for (int i = 0; i < 24; i++) {
-        if (i == sec2) {
-          scheme[i] = tri2;
+      if (n != last_n) {
+        last_n = n;
+        for (int j = 0; j < n; j++) {
+          pixel.setPixelColor(j, elem);
+          pixel.show();
         }
-        else if (i == min2) {
-          scheme[i] = tri1;
+        for (int i = n; i <= 23; i++ ) {
+          pixel.setPixelColor(i, 0, 0, 0);
+          pixel.show();
         }
-        else if (i == hour2 && i != 0) {
-          scheme[i] = comp;
-        }
-        else if (i % 2 == 0) {
-          scheme[i] = elem;
-          }
-        else {
-          scheme[i] = 0;
-        }
-        pixel.setPixelColor(i, scheme[i]);
-        pixel.show();
       }
+    
+     
+    
+  }
+
+  void clockStyle() {
+    uint16_t hour2 = time_running/3600;
+    uint16_t sec2 = time_running%3600;
+    uint16_t min2 = sec2/60;
+    sec2 = sec2%60;
+    
+    hour2 *= 2;
+    min2 = map(min2, 0, 60, 0, 24);
+    sec2 = map(sec2, 0, 60, 0, 24);
+
+    for (uint16_t i = 0; i < 24; i++) {
+      
+      if (i == sec2) {
+        scheme[i] = tri2;
+      }
+      else if (i == min2) {
+        scheme[i] = tri1;
+      }
+      else if (i == hour2 && i != 0) {
+        scheme[i] = comp;
+      }
+      else if (i % 2 == 0) {
+        scheme[i] = elem;
+        }
+      else {
+        scheme[i] = 0;
+      }
+      pixel.setPixelColor(i, scheme[i]);
+      pixel.show();
     }
   }

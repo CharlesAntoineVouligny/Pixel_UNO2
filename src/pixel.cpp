@@ -7,7 +7,7 @@
   #include <avr/power.h>
 #endif
 
-#define LED_PIN     5
+#define LED_PIN     8
 #define LED_COUNT   24
 #define key         2
 #define s2          3
@@ -97,8 +97,7 @@ ISR(TIMER1_COMPA_vect) {
 
 void setup() {
 
-  Serial.begin(9600);
-
+Serial.begin(9600);
 // Set internal LED to OUTPUT
   DDRB = (1 << 5); 
   DDRD = (1 << 6);
@@ -142,9 +141,16 @@ void setup() {
     {
       case 1:
         // Swap between watch and continuous view styles
-        shortpress = false;
-        view_style = !view_style;
-        mode = 0;
+        
+        
+        
+        if (shortpress) {
+          shortpress = false;
+          mode = 0;
+        } else {
+            click();
+            clockStyle();
+        }
         break;  
 
       case 2:
@@ -153,8 +159,7 @@ void setup() {
           while(!shortpress) {
           click();
           bright = constrain(map(counter, 0, 50, 0 , 255), 0, 255);
-          Serial.print("Brightness: ");
-          Serial.println(bright);
+          
           settingDisplay();
         }
         EEPROM.update(1, bright);
@@ -168,8 +173,7 @@ void setup() {
         while (!shortpress) {
           click();
           hue = constrain(map(counter, 0, 50, 0, 65536), 0, 65536);
-          Serial.print("Hue value: ");
-          Serial.println(hue);
+         
           settingDisplay();
         }
         for (int i = 3; i < 7; i++){
@@ -191,8 +195,7 @@ void setup() {
         while (!shortpress) {
           click();
           sat = constrain(map(counter, 0, 25, 0 , 250), 0, 255);
-          Serial.print("Saturation: ");
-          Serial.println(sat);
+          
           settingDisplay();
         }
         EEPROM.update(2, sat);
@@ -206,6 +209,10 @@ void setup() {
 
       default:
         click();
+        if (shortpress) {
+          shortpress = false;
+          mode++;
+        }
         modeSelect();
       //Increments time in variables minute and second
         timeKeeper();  
