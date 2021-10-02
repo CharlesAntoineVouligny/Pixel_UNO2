@@ -19,6 +19,7 @@ int exclusive(byte, byte min, byte max);
 ///Set the time
 void timeSet();
 void display();
+/// Show users colors in a cool rotating fashion
 void settingDisplay();
 void chase();
 void blink();

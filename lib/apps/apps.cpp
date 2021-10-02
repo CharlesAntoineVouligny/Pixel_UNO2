@@ -54,14 +54,15 @@ extern bool
   init_setflag,
   setting,
   view_style,
-  display_flag;
+  refresh;
 extern long
   hue,
   elem,
   comp,
   tri1,
   tri2,
-  scheme[24];
+  scheme[24],
+  last_timer;
 // Local global
 int pinAstateCurrent = LOW;
 int pinAStateLast = pinAstateCurrent;
@@ -427,13 +428,65 @@ void Going_To_Sleep(){
 
   void settingDisplay() {
     colors();
-    pixel.fill(tri1, 0 ,8);
-    pixel.show();
-    pixel.fill(elem, 8, 8);
-    pixel.show();
-    pixel.fill(tri2, 16, 8);
-    pixel.show();
+    static uint_fast8_t marker = 0;
+    static uint_fast32_t s_scheme[24];
+    uint_fast8_t j = 0;
+    
+  if (refresh) { 
 
+    if (timer >= last_timer + (l)25) {
+      last_timer = timer;
+      for (uint_fast8_t i = 0; i < 48; i++) {
+        if (i >= marker && j < 8 && i >= 24) {
+          s_scheme[i - 24] = tri1;
+          j++;
+        } 
+        else if (i >= marker && j < 8) {
+          s_scheme[i] = tri1;
+          j++;
+        }
+        if (j >= 8) {
+          j = 0;
+          break;
+        }
+      }
+      for (uint_fast8_t i = 0; i < 48; i++) {
+        if (i >= marker + 8 && j < 8 && i >= 24) {
+          s_scheme[i - 24] = elem;
+          j++;
+        } 
+        else if (i >= marker + 8 && j < 8) {
+          s_scheme[i] = elem;
+          j++;
+        }
+        if (j >= 8) {
+          j = 0;
+          break;
+        }
+      }
+      for (uint_fast8_t i = 0; i < 48; i++) {
+        if (i >= marker + 16 && j < 8 && i >= 24) {
+          s_scheme[i - 24] = tri2;
+          j++;
+        } 
+        else if (i >= marker + 16 && j < 8) {
+          s_scheme[i] = tri2;
+          j++;
+        }
+        if (j >= 8) {
+          j = 0;
+          break;
+        }
+      }
+    }
+    
+    
+      for (uint_fast8_t i = 0; i < 24; i++) {
+        pixel.setPixelColor(i, s_scheme[i]);
+        pixel.show();
+      }
+      
+    }
   }
     
 
@@ -442,9 +495,9 @@ void Going_To_Sleep(){
     
      n = constrain(map(time_running, 0, timeset, 0, 25), 0, 24);
 
-      if (n != last_n || display_flag) {
+      if (n != last_n || refresh) {
         last_n = n;
-        display_flag = false;
+        refresh = false;
         for (int j = 0; j < n; j++) {
           pixel.setPixelColor(j, elem);
           pixel.show();
@@ -507,3 +560,4 @@ void Going_To_Sleep(){
       Serial.println("Double!");
     }
   }
+

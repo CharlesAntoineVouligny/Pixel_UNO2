@@ -22,7 +22,7 @@ bool
   flag = true, 
   init_setflag = false,
   setting = false,
-  display_flag = false;
+  refresh = false;
 byte 
   mode = 0, 
   bright, 
@@ -47,7 +47,8 @@ long
   tri2,
   scheme[24];
 unsigned long 
-  time;
+  time,
+  last_timer = 0;
 
 
 
@@ -148,7 +149,7 @@ Serial.begin(9600);
         clockStyle();
         } else {
           shortpress = false;
-          display_flag = true;
+          refresh = true;
           mode = 0;
         }
         
@@ -156,20 +157,18 @@ Serial.begin(9600);
 
       case 2:
         // Brightness setting
-         
-
         counter = map(bright, 0, 255, 0, 50);
+        refresh = true;
           while(!shortpress) {
-         
+            click();
+            bright = constrain(map(counter, 0, 50, 0 , 255), 0, 255);
+            settingDisplay();
+          }
 
-          click();
-          bright = constrain(map(counter, 0, 50, 0 , 255), 0, 255);
-          
-          settingDisplay();
-        }
         if (bright != 0) {
         EEPROM.update(1, bright);
         }
+
         shortpress = false;
         mode++;
         break;
@@ -177,8 +176,8 @@ Serial.begin(9600);
       case 3:
         // Color setting
          
-
-          counter = map(hue, 0, 65536, 0, 50);
+        refresh = true;
+        counter = map(hue, 0, 65536, 0, 50);
         while (!shortpress) {
           click();
          
@@ -204,16 +203,15 @@ Serial.begin(9600);
          
 
         // Saturation setting
-          counter = map(sat, 0, 255, 0, 25);
+        refresh = true;
+        counter = map(sat, 0, 255, 0, 25);
         while (!shortpress) {
           click();
-         
-
           sat = constrain(map(counter, 0, 25, 0 , 250), 0, 255);
-          
           settingDisplay();
         }
         EEPROM.update(2, sat);
+        refresh = true;
         shortpress = false;
         mode++;
         break;
