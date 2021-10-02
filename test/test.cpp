@@ -94,6 +94,7 @@ ISR(TIMER1_COMPA_vect) {
     }
 }
 
+uint_fast8_t test[24];
 
 void setup() {
 
@@ -133,11 +134,13 @@ void setup() {
   // Calculate triadic colors based on color setting
   colors();
   
-  EEPROM.write(1, 20);
-  
+
   
 }
 
 void loop() {
+
+
+
 
 }

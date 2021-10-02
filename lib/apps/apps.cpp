@@ -47,14 +47,16 @@ extern byte
 extern int
   timeset,
   time_running,
-  presscount;
+  presscount,
+  last_counter;
 extern unsigned long 
   time;
 extern bool 
   init_setflag,
   setting,
   view_style,
-  refresh;
+  refresh,
+  pause;
 extern long
   hue,
   elem,
@@ -62,6 +64,7 @@ extern long
   tri1,
   tri2,
   scheme[24],
+  s_scheme[24],
   last_timer;
 // Local global
 int pinAstateCurrent = LOW;
@@ -427,65 +430,219 @@ void Going_To_Sleep(){
   }
 
   void settingDisplay() {
+    switch (mode)
+    {
+    case 2:
+      while (refresh) {
+        /* If refresh is true, mode has just been incremented.
+         The following is a transition animation:
+         Every 25 ms, add 1 pixel in setting style display.
+         */
+        if (last_timer + 25 <= timer) {
+          last_timer = timer;
+          static uint_fast8_t i = 0;
+            switch (i)
+            {
+            case 0 ... 7:
+              pixel.setPixelColor(i, elem);
+              pixel.show();
+              i++;
+              break;
+            case 8 ... 15:
+              pixel.setPixelColor(i, tri1);
+              pixel.show();
+              i++;
+              break;
+            case 16 ... 23:
+              pixel.setPixelColor(i, tri2);
+              pixel.show();
+              if (i == 23) {
+                i = 0;
+                refresh = false;
+                break;
+              }
+              i++;
+              break;
+            }
+        }
+      }
+      while (!shortpress) {
+        /* 
+          This function updates color scheme displayed 
+        every time a pulse from the rotary encoder is 
+        recorded. Press the rotary encoder button to save
+        parameter.
+        */
+        click();
+        bright = constrain(map(counter, 0, 50, 0 , 255), 0, 255);
+        colors();
+        if (last_counter != counter) {
+          last_counter = counter;
+          for (uint_fast8_t i = 0; i < 24; i++) {
+            switch (i)
+            {
+            case 0 ...7:
+              pixel.setPixelColor(i, elem);
+              pixel.show();
+              break;
+            case 8 ...15:
+              pixel.setPixelColor(i, tri1);
+              pixel.show();
+              break;
+            case 16 ...23:
+              pixel.setPixelColor(i, tri2);
+              pixel.show();
+              break;
+            }
+          }
+        }
+      }
+      break;
+    case 3:
     colors();
-    static uint_fast8_t marker = 0;
-    static uint_fast32_t s_scheme[24];
-    uint_fast8_t j = 0;
-    
-  if (refresh) { 
+      while (refresh) {
+        // This transition shifts all colors 120°.
+          for (uint_fast8_t j = 0; j <= 8; j++) {
 
-    if (timer >= last_timer + (l)25) {
-      last_timer = timer;
-      for (uint_fast8_t i = 0; i < 48; i++) {
-        if (i >= marker && j < 8 && i >= 24) {
-          s_scheme[i - 24] = tri1;
-          j++;
-        } 
-        else if (i >= marker && j < 8) {
-          s_scheme[i] = tri1;
-          j++;
-        }
-        if (j >= 8) {
-          j = 0;
-          break;
+          for (uint_fast8_t i = 0; i < 24; i++) {
+            s_scheme[i] = tri2;
+          }
+
+          for (uint_fast8_t k = j; k < j + 8; k++) {
+            if (k > 23) {
+              s_scheme[k - 24] = elem;
+            } else {
+              s_scheme[k] = elem;
+            }
+          }
+          for (uint_fast8_t l = j + 8; l < j + 16; l++) {
+            if (l > 23) {
+              s_scheme[l - 24] = tri1;
+            } else {
+              s_scheme[l] = tri1;
+            }
+          }
+            for (uint_fast8_t i = 0; i < 24; i++) {
+              
+              pixel.setPixelColor(i, s_scheme[i]);
+              pixel.show();
+            }
+          if (j == 8) {
+            refresh = false;
+          }
+          }
+      }
+      while (!shortpress) {
+        /* 
+          This function updates color scheme displayed 
+        every time a pulse from the rotary encoder is 
+        recorded. Press the rotary encoder button to save
+        parameter.
+        */
+        click();
+        hue = constrain(map(counter, 0, 50, 0, 65536), 0, 65536);
+        colors();
+        if (last_counter != counter) {
+          last_counter = counter;
+          for (uint_fast8_t i = 0; i < 24; i++) {
+            switch (i)
+            {
+            case 0 ...7:
+              pixel.setPixelColor(i, tri2);
+              pixel.show();
+              break;
+            case 8 ...15:
+              pixel.setPixelColor(i, elem);
+              pixel.show();
+              break;
+            case 16 ...23:
+              pixel.setPixelColor(i, tri1);
+              pixel.show();
+              break;
+            }
+          }
         }
       }
-      for (uint_fast8_t i = 0; i < 48; i++) {
-        if (i >= marker + 8 && j < 8 && i >= 24) {
-          s_scheme[i - 24] = elem;
-          j++;
-        } 
-        else if (i >= marker + 8 && j < 8) {
-          s_scheme[i] = elem;
-          j++;
-        }
-        if (j >= 8) {
-          j = 0;
-          break;
-        }
-      }
-      for (uint_fast8_t i = 0; i < 48; i++) {
-        if (i >= marker + 16 && j < 8 && i >= 24) {
-          s_scheme[i - 24] = tri2;
-          j++;
-        } 
-        else if (i >= marker + 16 && j < 8) {
-          s_scheme[i] = tri2;
-          j++;
-        }
-        if (j >= 8) {
-          j = 0;
-          break;
-        }
-      }
-    }
+      break;
     
-    
-      for (uint_fast8_t i = 0; i < 24; i++) {
-        pixel.setPixelColor(i, s_scheme[i]);
-        pixel.show();
+    case 4:
+      while (refresh) {
+        // This transition shifts all colors 120°.
+          for (uint_fast8_t j = 0; j <= 8; j++) {
+
+          for (uint_fast8_t i = 0; i < 24; i++) {
+            s_scheme[i] = tri1;
+          }
+
+          for (uint_fast8_t k = j; k < j + 8; k++) {
+            if (k > 23) {
+              s_scheme[k - 24] = tri2;
+            } else {
+              s_scheme[k] = tri2;
+            }
+          }
+          for (uint_fast8_t l = j + 8; l < j + 16; l++) {
+            if (l > 23) {
+              s_scheme[l - 24] = elem;
+            } else {
+              s_scheme[l] = elem;
+            }
+          }
+            for (uint_fast8_t i = 0; i < 24; i++) {
+              
+              pixel.setPixelColor(i, s_scheme[i]);
+              pixel.show();
+            }
+          if (j == 8) {
+            refresh = false;
+          }
+          }
       }
-      
+      while (!shortpress) {
+        /* 
+          This function updates color scheme displayed 
+        every time a pulse from the rotary encoder is 
+        recorded. Press the rotary encoder button to save
+        parameter.
+        */
+        click();
+        sat = constrain(map(counter, 0, 25, 0 , 250), 0, 255);
+        colors();
+        if (last_counter != counter) {
+          last_counter = counter;
+          for (uint_fast8_t i = 0; i < 24; i++) {
+            switch (i)
+            {
+            case 0 ...7:
+              pixel.setPixelColor(i, tri1);
+              pixel.show();
+              break;
+            case 8 ...15:
+              pixel.setPixelColor(i, tri2);
+              pixel.show();
+              break;
+            case 16 ...23:
+              pixel.setPixelColor(i, elem);
+              pixel.show();
+              break;
+            }
+          }
+        }
+      }
+      n = constrain(map(time_running, 0, timeset, 0, 25), 0, 24);
+      for (uint_fast8_t i = 24; i >= 0; i--) {
+        if (i > n) {
+          pixel.setPixelColor(i, 0);
+          pixel.show();
+        }
+        else {
+          pixel.setPixelColor(i, elem);
+          pixel.show();
+        }
+      }
+      refresh = true;
+      break;
+    
     }
   }
     
