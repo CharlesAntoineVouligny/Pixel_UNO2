@@ -208,12 +208,11 @@ Serial.begin(9600);
         refresh = true;
         shortpress = false;
         mode++;
-        
+        transitionToDisplay();
         break;
       
       case 5:
         mode = 0;
-        refresh = true;
         break;
 
       default:

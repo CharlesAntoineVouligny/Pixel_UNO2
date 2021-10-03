@@ -47,6 +47,7 @@ extern byte
 extern int
   timeset,
   time_running,
+  time_passed,
   presscount,
   last_counter;
 extern unsigned long 
@@ -669,6 +670,15 @@ void Going_To_Sleep(){
     hour2 *= 2;
     min2 = map(min2, 0, 60, 0, 24);
     
+    timeKeeper();  
+    time_passed = minute*60 + second;
+    time_running = timeset - time_passed;
+    time_running = constrain(time_running, 0, timeset);
+  // Sleep http://www.gammon.com.au/power
+    if (time_running <= 0) {
+      Going_To_Sleep();
+    }
+
     // Update clock every second
     if (last_second != second) {
       last_second = second;
@@ -712,17 +722,23 @@ void Going_To_Sleep(){
   }
 
 void transitionToDisplay() {
-  if (last_timer + 25 <= timer) {
-    last_timer = timer;
-    for (uint_fast8_t i = 23; i >= 0; i--) {
-      n = constrain(map(time_running, 0, timeset, 0, 25), 0, 24);
-      if (i >= n) {
-        pixel.setPixelColor(i, 0);
-        pixel.show();
-      } else {
-        pixel.setPixelColor(i, elem);
-        pixel.show();
+  timeKeeper();  
+  time_passed = minute*60 + second;
+  time_running = timeset - time_passed;
+  time_running = constrain(time_running, 0, timeset);
+  n = constrain(map(time_running, 0, timeset, 0, 25), 0, 24);
+
+  for (uint_fast8_t i = 0; i < 24; i++) {
+    delay(25);
+    if (i >= n) {
+      pixel.setPixelColor(i, 0);
+      pixel.show();
+    } else {
+      pixel.setPixelColor(i, elem);
+      pixel.show();
       }
-    }
   }
+  refresh = true;
+  display();
+  
 }
