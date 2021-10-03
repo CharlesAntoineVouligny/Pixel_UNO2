@@ -136,102 +136,99 @@ Serial.begin(9600);
   colors();
   
 }
-  void loop() {
+void loop() {
+  click();
+  timeSet();
+  modeSelect();
+  
+  switch (mode)
+  {
+    case 1:
+        
+      // Swap between watch and continuous view styles
     click();
-    timeSet();
-    modeSelect();
-    
-    switch (mode)
-    {
-      case 1:
-         
-        // Swap between watch and continuous view styles
-      click();
-       if (!shortpress) {
-        clockStyle();
-        } else {
-          shortpress = false;
-          refresh = true;
-          mode = 0;
-        }
-        
-        break;  
-
-      case 2:
-        // Brightness setting
-        counter = map(bright, 0, 255, 0, 50);
-        refresh = true;
-        
-        while(!shortpress) {
-          settingDisplay();
-        }
-        
-        if (bright != 0) {
-        EEPROM.update(1, bright);
-        }
-
+      if (!shortpress) {
+      clockStyle();
+      } else {
         shortpress = false;
-        mode++;
-        break;
-
-      case 3:
-        // Color setting
-         
         refresh = true;
-        counter = map(hue, 0, 65536, 0, 50);
-        while (!shortpress) {
-          settingDisplay();
-        }
-        for (int i = 3; i < 7; i++){
-        finish.lByte[i-3] = EEPROM.read(i);
-        }
-        if (hue != finish.lValue) {
-          strt.lValue = hue;
-          for (int i = 3; i < 7; i++) {
-            EEPROM.write(i, strt.lByte[i-3]);
-          }
-        }
-        shortpress = false;
-        mode++;
-        break;
-      
-      case 4:
-         
-
-        // Saturation setting
-        refresh = true;
-        counter = map(sat, 0, 255, 0, 25);
-        while (!shortpress) {
-          settingDisplay();
-        }
-        EEPROM.update(2, sat);
-        refresh = true;
-        shortpress = false;
-        mode++;
-        transitionToDisplay();
-        break;
-      
-      case 5:
         mode = 0;
-        break;
+      }
+      
+      break;  
 
-      default:
-         
-        click();
-        display();
-        if (shortpress) {
-          shortpress = false;
-          mode++;
+    case 2:
+      // Brightness setting
+      refresh = true;
+      
+      while(!shortpress) {
+        settingDisplay();
+      }
+      
+      if (bright != 0) {
+      EEPROM.update(1, bright);
+      }
+
+      shortpress = false;
+      mode++;
+      break;
+
+    case 3:
+      // Color setting
+        
+      refresh = true;
+      while (!shortpress) {
+        settingDisplay();
+      }
+      for (int i = 3; i < 7; i++){
+      finish.lByte[i-3] = EEPROM.read(i);
+      }
+      if (hue != finish.lValue) {
+        strt.lValue = hue;
+        for (int i = 3; i < 7; i++) {
+          EEPROM.write(i, strt.lByte[i-3]);
         }
-        modeSelect();
-      //Increments time in variables minute and second
-        timeKeeper();  
-        time_passed = minute*60 + second;
-        time_running = timeset - time_passed;
-        time_running = constrain(time_running, 0, timeset);
-      // Sleep http://www.gammon.com.au/power
-        if (time_running <= 0) {
-          Going_To_Sleep();
-        }
-    }
+      }
+      shortpress = false;
+      mode++;
+      break;
+    
+    case 4:
+        
+
+      // Saturation setting
+      refresh = true;
+      while (!shortpress) {
+        settingDisplay();
+      }
+      EEPROM.update(2, sat);
+      refresh = true;
+      shortpress = false;
+      mode++;
+      transitionToDisplay();
+      break;
+    
+    case 5:
+      mode = 0;
+      break;
+
+    default:
+        
+      click();
+      display();
+      if (shortpress) {
+        shortpress = false;
+        mode++;
+      }
+      modeSelect();
+    //Increments time in variables minute and second
+      timeKeeper();  
+      time_passed = minute*60 + second;
+      time_running = timeset - time_passed;
+      time_running = constrain(time_running, 0, timeset);
+    // Sleep http://www.gammon.com.au/power
+      if (time_running <= 0) {
+        Going_To_Sleep();
+      }
   }
+}

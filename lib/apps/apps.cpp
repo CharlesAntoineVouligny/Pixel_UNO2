@@ -467,6 +467,7 @@ void Going_To_Sleep(){
             }
         }
       }
+      counter = map(bright, 0, 255, 0, 50);
       while (!shortpress) {
         /* 
           This function updates color scheme displayed 
@@ -532,8 +533,9 @@ void Going_To_Sleep(){
           if (j == 8) {
             refresh = false;
           }
-          }
+        }
       }
+      counter = map(hue, 0, 65536, 0, 100);
       while (!shortpress) {
         /* 
           This function updates color scheme displayed 
@@ -542,8 +544,8 @@ void Going_To_Sleep(){
         parameter.
         */
         click();
-        roundCounter(50);
-        hue = constrain(map(counter, 0, 50, 0, 65536), 0, 65536);
+        roundCounter(100);
+        hue = constrain(map(counter, 0, 100, 0, 65536), 0, 65536);
         colors();
         if (last_counter != counter || last_timer + 25 <= timer) {
           last_counter = counter;
@@ -604,6 +606,7 @@ void Going_To_Sleep(){
           }
           }
       } // Then normal setting display until press
+      counter = map(sat, 0, 255, 0, 50);
       while (!shortpress) {
         /* 
           This function updates color scheme displayed 
@@ -612,7 +615,7 @@ void Going_To_Sleep(){
         parameter.
         */
         click();
-        sat = constrain(map(counter, 0, 25, 0 , 250), 0, 255);
+        sat = constrain(map(counter, 0, 50, 0 , 250), 0, 255);
         colors();
         if (last_counter != counter || last_timer + 25 <= timer) {
           last_counter = counter;
@@ -730,7 +733,7 @@ void transitionToDisplay() {
 
   for (uint_fast8_t i = 0; i < 24; i++) {
     delay(25);
-    if (i >= n) {
+    if (i > n) {
       pixel.setPixelColor(i, 0);
       pixel.show();
     } else {
