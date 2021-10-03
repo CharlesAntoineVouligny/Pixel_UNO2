@@ -239,7 +239,7 @@ void Going_To_Sleep(){
 
   }
 
-  // MISC
+// MISC
 
   void colors() {
     comp = hue + 32768;
@@ -474,10 +474,11 @@ void Going_To_Sleep(){
         parameter.
         */
         click();
-        bright = constrain(map(counter, 0, 50, 0 , 255), 0, 255);
+        bright = constrain(map(counter, 0, 50, 0 , 255), 5, 255);
         colors();
-        if (last_counter != counter) {
+        if (last_counter != counter || last_timer + 25 <= timer) {
           last_counter = counter;
+          last_timer = timer;
           for (uint_fast8_t i = 0; i < 24; i++) {
             switch (i)
             {
@@ -540,10 +541,12 @@ void Going_To_Sleep(){
         parameter.
         */
         click();
+        roundCounter(50);
         hue = constrain(map(counter, 0, 50, 0, 65536), 0, 65536);
         colors();
-        if (last_counter != counter) {
+        if (last_counter != counter || last_timer + 25 <= timer) {
           last_counter = counter;
+          last_timer = timer;
           for (uint_fast8_t i = 0; i < 24; i++) {
             switch (i)
             {
@@ -566,6 +569,7 @@ void Going_To_Sleep(){
       break;
     
     case 4:
+      colors();
       while (refresh) {
         // This transition shifts all colors 120°.
           for (uint_fast8_t j = 0; j <= 8; j++) {
@@ -595,9 +599,10 @@ void Going_To_Sleep(){
             }
           if (j == 8) {
             refresh = false;
+            break;
           }
           }
-      }
+      } // Then normal setting display until press
       while (!shortpress) {
         /* 
           This function updates color scheme displayed 
@@ -608,8 +613,9 @@ void Going_To_Sleep(){
         click();
         sat = constrain(map(counter, 0, 25, 0 , 250), 0, 255);
         colors();
-        if (last_counter != counter) {
+        if (last_counter != counter || last_timer + 25 <= timer) {
           last_counter = counter;
+          last_timer = timer;
           for (uint_fast8_t i = 0; i < 24; i++) {
             switch (i)
             {
@@ -629,25 +635,12 @@ void Going_To_Sleep(){
           }
         }
       }
-      n = constrain(map(time_running, 0, timeset, 0, 25), 0, 24);
-      for (uint_fast8_t i = 24; i >= 0; i--) {
-        if (i > n) {
-          pixel.setPixelColor(i, 0);
-          pixel.show();
-        }
-        else {
-          pixel.setPixelColor(i, elem);
-          pixel.show();
-        }
-      }
       refresh = true;
       break;
     
     }
   }
-    
-
-    
+      
   void display() {
     
      n = constrain(map(time_running, 0, timeset, 0, 25), 0, 24);
@@ -718,3 +711,18 @@ void Going_To_Sleep(){
     }
   }
 
+void transitionToDisplay() {
+  if (last_timer + 25 <= timer) {
+    last_timer = timer;
+    for (uint_fast8_t i = 23; i >= 0; i--) {
+      n = constrain(map(time_running, 0, timeset, 0, 25), 0, 24);
+      if (i >= n) {
+        pixel.setPixelColor(i, 0);
+        pixel.show();
+      } else {
+        pixel.setPixelColor(i, elem);
+        pixel.show();
+      }
+    }
+  }
+}
