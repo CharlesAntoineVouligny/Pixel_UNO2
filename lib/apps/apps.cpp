@@ -115,7 +115,8 @@ void modeSelect() {
     for (byte i = 24; i > 0; i--) {
       pixel.setPixelColor(i, 0);
       pixel.show();
-      delay(25);
+      last_timer = timer;
+      while (timer < last_timer + 25) {}
     }
   }
 }
@@ -260,7 +261,8 @@ void Going_To_Sleep(){
   // make sure NeoPixels are off
   pixel.clear();
   pixel.show();
-  delay(10);
+  last_timer = timer;
+  while (timer < last_timer + 10) {}
 // See http://www.gammon.com.au/power or sleep example
     detachInterrupt(digitalPinToInterrupt(s2));
     detachInterrupt(digitalPinToInterrupt(key));
@@ -354,7 +356,8 @@ void Going_To_Sleep(){
             pixel.setPixelColor(i, elem);
           }
           pixel.show();
-          delay(25);
+          last_timer = timer;
+          while (timer < last_timer + 25) {}
         }
         increment = false;
       }
@@ -468,7 +471,8 @@ void Going_To_Sleep(){
             pixel.show();
             pixel.setPixelColor(anim[1][i], elem);
             pixel.show();
-            delay(25);
+            last_timer = timer;
+            while (timer < last_timer + 25) {}
           }
         }
       }
@@ -776,7 +780,8 @@ void transitionToDisplay() {
   n = constrain(map(time_running, 0, timeset, 0, 25), 0, 24);
 
   for (byte i = 0; i < 24; i++) {
-    delay(25);
+    last_timer = timer;
+    while (timer < last_timer + 25) {}
     if (i > n) {
       pixel.setPixelColor(i, 0);
       pixel.show();
