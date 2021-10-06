@@ -7,7 +7,7 @@
   #include <avr/power.h>
 #endif
 
-#define LED_PIN     5
+#define LED_PIN     8
 #define LED_COUNT   24
 #define key         2
 #define s2          3
@@ -21,7 +21,14 @@ bool
   done = false,
   flag = true, 
   init_setflag = false,
-  setting = false;
+  setting = false,
+  refresh = false,
+  view_style = false,
+  press_flag2 = false,
+  shortpress = false,
+  doublepress = false, 
+  longpress = false;
+  
 byte 
   mode = 0, 
   bright, 
@@ -29,47 +36,45 @@ byte
   n, 
   last_n,
   hourset = 0,
+  last_counter = 0,
   p_index,
-  h_index,
-  view_style;
+  h_index;
+  
 int  
   timeset = 0, 
   time_passed, 
   time_running, 
-  last_counter = 0,
   presscount = 0;
+
 long 
   hue,
   elem,
   comp,
   tri1,
   tri2,
-  scheme[24];
+  scheme[24],
+  s_scheme[24];
+
 unsigned long 
-  time;
-
-
+  last_timer = 0,
+  press_time, 
+  release_time;
 
 // Interrupt variables
 volatile byte 
-  second = 0;
-volatile int 
-  minute = 0, 
+  second = 0,
   counter = 0;
+
+volatile int 
+  minute = 0; 
+
 volatile bool 
   press_flag = false, 
-  press_flag2 = false,
-  press_flag3 = false, 
-  release_flag = false, 
-  shortpress = false,
-  doublepress = false, 
-  longpress = false,
+  release_flag = false,
   increment = false,
-  decrement = false;
-volatile unsigned long 
-  press_time, 
-  release_time,
-  first_time;
+  decrement = false,
+  pinAstateCurrent = LOW,
+  pinAStateLast = pinAstateCurrent;
 
 volatile unsigned long 
   timer = 0;
@@ -94,16 +99,13 @@ ISR(TIMER1_COMPA_vect) {
     }
 }
 
-uint_fast8_t test[24];
 
 void setup() {
 
-  Serial.begin(9600);
-
+Serial.begin(9600);
 // Set internal LED to OUTPUT
-  DDRB = (1 << 5);
-  DDRD = (1 << 5);
-  DDRD |= (1 << 6);
+  DDRB = (1 << 5); 
+  DDRD = (1 << 6);
 
 // See Ben Finio tutorial on YouTube
   TCCR1A = 0;
@@ -123,7 +125,7 @@ void setup() {
 // Read parameters from EEPROM and reconstruct the hue from 4 bytes
 // using an union (see union_example.cpp in the examples folder)
   bright = EEPROM.read(1);
-  sat = EEPROM.read(2);
+  sat = 250;
   for(int i = 3; i < 7; i++){
         finish.lByte[i-3] = EEPROM.read(i);
     }
@@ -134,13 +136,9 @@ void setup() {
   // Calculate triadic colors based on color setting
   colors();
   
-  
-  
 }
 
 void loop() {
-
-
-
+  
 
 }

@@ -12,29 +12,19 @@
 // Extern object
 extern Adafruit_NeoPixel pixel;
 
-// Extern interrupt variables
-extern volatile byte 
-  second;
-extern volatile int 
-  minute, 
-  counter;
-extern volatile bool 
-  press_flag, 
-  press_flag2,
-  press_flag3, 
-  release_flag, 
+// Extern globals
+extern bool 
+  init_setflag,
+  setting,
+  view_style,
+  refresh,
+  press_flag2, 
   shortpress,
   doublepress, 
   longpress,
   increment,
   decrement;
-extern volatile unsigned long 
-  press_time, 
-  release_time,
-  first_time, 
-  timer;
 
-// Extern globals
 extern byte 
   mode, 
   bright, 
@@ -43,21 +33,15 @@ extern byte
   p_index,
   h_index,
   n,
-  last_n;
-extern int
+  last_n,
+  last_counter;
+
+extern int  
   timeset,
   time_running,
   time_passed,
-  presscount,
-  last_counter;
-extern unsigned long 
-  time;
-extern bool 
-  init_setflag,
-  setting,
-  view_style,
-  refresh,
-  pause;
+  presscount;
+
 extern long
   hue,
   elem,
@@ -67,17 +51,36 @@ extern long
   scheme[24],
   s_scheme[24],
   last_timer;
+extern unsigned long
+  press_time, 
+  release_time;
+
+// Extern interrupt variables
+extern volatile byte  
+  second,
+  counter;
+extern volatile int  
+  minute;
+extern volatile bool 
+  press_flag, 
+  release_flag,
+  pinAstateCurrent,
+  pinAStateLast;
+extern volatile unsigned long 
+  
+  timer;
+
 // Local global
-int pinAstateCurrent = LOW;
-int pinAStateLast = pinAstateCurrent;
+ 
 int press = 0;
 
 bool
   first = true;
-uint8_t 
+byte
   last_second = 0,
-  s_index = 23;
-uint16_t
+  s_index = 23,
+  update_ms = 25;
+int
   hour2,
   sec2,
   min2;
@@ -109,7 +112,7 @@ void modeSelect() {
     // Reset
     
     init_setflag = false;
-    for (uint8_t i = 24; i > 0; i--) {
+    for (byte i = 24; i > 0; i--) {
       pixel.setPixelColor(i, 0);
       pixel.show();
       delay(25);
@@ -128,10 +131,10 @@ void update() {
   if ((pinAStateLast == LOW) && (pinAstateCurrent == HIGH)) {
 
     if (digitalRead(s2) == HIGH) { 
-      counter++;
+      // counter++;
       increment = true;
     } else {
-      counter--;
+      // counter--;
       decrement = true;
     }
     
@@ -141,6 +144,57 @@ void update() {
   
 }
 
+byte count(bool round, byte min, byte max) {
+  switch (round)
+  {
+  case false:
+    // Increase/Decrease counter if within range
+    if (counter > min && counter < max) {
+      if (increment) {
+        increment = false;
+        counter++;
+      }
+      else if (decrement) {
+        decrement = false;
+        counter--;
+      }
+    }
+    else if (increment && counter == min) {
+        increment = false;
+        counter++;
+      }
+    else if (decrement && counter == max) {
+      decrement = false;
+      counter--;
+    }
+    else {
+      increment = false;
+      decrement = false;
+    }
+    break;
+  
+    
+  case true:
+    // Round Count
+    if (increment) {
+      increment = false;
+      counter++;
+    }
+    else if (decrement) {
+      decrement = false;
+      counter--;
+    }
+    if (counter >= max) {
+      counter = min;
+    }
+    else if (counter <= min) {
+      counter = max;
+    }
+    
+    break;
+  }
+  return counter;
+}
 
 void click() {
   //if this is true the button was just pressed down
@@ -261,17 +315,8 @@ void Going_To_Sleep(){
     tri2 = pixel.ColorHSV(tri2, sat, bright);
   }
 
-  int roundCounter(int max) {
-      if (counter > max) {
-        counter = 0;
-      } else if (counter < 0) {
-        counter = max;
-    }
-    return counter;
-  }
-
   void clockArray() {
-  for (int i = 0; i < 24; i++) {
+  for (byte i = 0; i < 24; i++) {
     if (i == 0 || i == 6 || i == 12 || i == 18) {
       scheme[i] = comp;
     } else {
@@ -301,7 +346,7 @@ void Going_To_Sleep(){
         timeset = 0;
         hourset = 0;
         // Animation
-        for(uint8_t i = 0; i < 24; i++) {
+        for(byte i = 0; i < 24; i++) {
           if (i == 0) {
             pixel.setPixelColor(i, tri2);
           }
@@ -367,7 +412,7 @@ void Going_To_Sleep(){
 
 
       h_index = hourset*2 + 2;
-      for (int i = 0; i < 24; i++) {
+      for (byte i = 0; i < 24; i++) {
         if (i == p_index) {
           scheme[i] = tri2;
         }
@@ -406,7 +451,7 @@ void Going_To_Sleep(){
           {0,0,0,0,0,0,0,0,0,0,0,0}
         };
         if (p_index != 0) {
-          for (uint8_t i = 0; i < 24; i++) {
+          for (byte i = 0; i < 24; i++) {
             
             if (i < p_index) {
               anim[1][i] = p_index - i;
@@ -416,7 +461,7 @@ void Going_To_Sleep(){
             }
           }
 
-          for (uint8_t i = 0; i < 24; i++) {
+          for (byte i = 0; i < 24; i++) {
             pixel.setPixelColor(p_index, tri2);
             pixel.show();
             pixel.setPixelColor(anim[0][i],elem);
@@ -439,9 +484,9 @@ void Going_To_Sleep(){
          The following is a transition animation:
          Every 25 ms, add 1 pixel in setting style display.
          */
-        if (last_timer + 25 <= timer) {
+        if (last_timer + update_ms <= timer) {
           last_timer = timer;
-          static uint_fast8_t i = 0;
+          static byte i = 0;
             switch (i)
             {
             case 0 ... 7:
@@ -467,7 +512,7 @@ void Going_To_Sleep(){
             }
         }
       }
-      counter = map(bright, 0, 255, 0, 50);
+      counter = map(bright, 0, 255, 0, 100);
       while (!shortpress) {
         /* 
           This function updates color scheme displayed 
@@ -476,12 +521,12 @@ void Going_To_Sleep(){
         parameter.
         */
         click();
-        bright = constrain(map(counter, 0, 50, 0 , 255), 5, 255);
+        bright = constrain(map(count(false, 0, 100), 0, 100, 0 , 255), 5, 255);
         colors();
-        if (last_counter != counter || last_timer + 25 <= timer) {
+        if (last_counter != counter || last_timer + update_ms <= timer) {
           last_counter = counter;
           last_timer = timer;
-          for (uint_fast8_t i = 0; i < 24; i++) {
+          for (byte i = 0; i < 24; i++) {
             switch (i)
             {
             case 0 ...7:
@@ -505,27 +550,27 @@ void Going_To_Sleep(){
     colors();
       while (refresh) {
         // This transition shifts all colors 120°.
-          for (uint_fast8_t j = 0; j <= 8; j++) {
+          for (byte j = 0; j <= 8; j++) {
 
-          for (uint_fast8_t i = 0; i < 24; i++) {
+          for (byte i = 0; i < 24; i++) {
             s_scheme[i] = tri2;
           }
 
-          for (uint_fast8_t k = j; k < j + 8; k++) {
+          for (byte k = j; k < j + 8; k++) {
             if (k > 23) {
               s_scheme[k - 24] = elem;
             } else {
               s_scheme[k] = elem;
             }
           }
-          for (uint_fast8_t l = j + 8; l < j + 16; l++) {
+          for (byte l = j + 8; l < j + 16; l++) {
             if (l > 23) {
               s_scheme[l - 24] = tri1;
             } else {
               s_scheme[l] = tri1;
             }
           }
-            for (uint_fast8_t i = 0; i < 24; i++) {
+            for (byte i = 0; i < 24; i++) {
               
               pixel.setPixelColor(i, s_scheme[i]);
               pixel.show();
@@ -535,7 +580,7 @@ void Going_To_Sleep(){
           }
         }
       }
-      counter = map(hue, 0, 65536, 0, 100);
+      counter = map(hue, 0, 65536, 0, 200);
       while (!shortpress) {
         /* 
           This function updates color scheme displayed 
@@ -544,13 +589,12 @@ void Going_To_Sleep(){
         parameter.
         */
         click();
-        roundCounter(100);
-        hue = constrain(map(counter, 0, 100, 0, 65536), 0, 65536);
+        hue = constrain(map(count(true, 0, 200), 0, 200, 0, 65536), 0, 65536);
         colors();
-        if (last_counter != counter || last_timer + 25 <= timer) {
+        if (last_counter != counter || last_timer + update_ms <= timer) {
           last_counter = counter;
           last_timer = timer;
-          for (uint_fast8_t i = 0; i < 24; i++) {
+          for (byte i = 0; i < 24; i++) {
             switch (i)
             {
             case 0 ...7:
@@ -575,27 +619,27 @@ void Going_To_Sleep(){
       colors();
       while (refresh) {
         // This transition shifts all colors 120°.
-          for (uint_fast8_t j = 0; j <= 8; j++) {
+          for (byte j = 0; j <= 8; j++) {
 
-          for (uint_fast8_t i = 0; i < 24; i++) {
+          for (byte i = 0; i < 24; i++) {
             s_scheme[i] = tri1;
           }
 
-          for (uint_fast8_t k = j; k < j + 8; k++) {
+          for (byte k = j; k < j + 8; k++) {
             if (k > 23) {
               s_scheme[k - 24] = tri2;
             } else {
               s_scheme[k] = tri2;
             }
           }
-          for (uint_fast8_t l = j + 8; l < j + 16; l++) {
+          for (byte l = j + 8; l < j + 16; l++) {
             if (l > 23) {
               s_scheme[l - 24] = elem;
             } else {
               s_scheme[l] = elem;
             }
           }
-            for (uint_fast8_t i = 0; i < 24; i++) {
+            for (byte i = 0; i < 24; i++) {
               
               pixel.setPixelColor(i, s_scheme[i]);
               pixel.show();
@@ -606,7 +650,7 @@ void Going_To_Sleep(){
           }
           }
       } // Then normal setting display until press
-      counter = map(sat, 0, 255, 0, 50);
+      counter = map(sat, 0, 255, 0, 100);
       while (!shortpress) {
         /* 
           This function updates color scheme displayed 
@@ -615,12 +659,12 @@ void Going_To_Sleep(){
         parameter.
         */
         click();
-        sat = constrain(map(counter, 0, 50, 0 , 250), 0, 255);
+        sat = constrain(map(count(false, 0, 100), 0, 100, 0 , 250), 0, 255);
         colors();
-        if (last_counter != counter || last_timer + 25 <= timer) {
+        if (last_counter != counter || last_timer + update_ms <= timer) {
           last_counter = counter;
           last_timer = timer;
-          for (uint_fast8_t i = 0; i < 24; i++) {
+          for (byte i = 0; i < 24; i++) {
             switch (i)
             {
             case 0 ...7:
@@ -652,11 +696,11 @@ void Going_To_Sleep(){
       if (n != last_n || refresh) {
         last_n = n;
         refresh = false;
-        for (int j = 0; j < n; j++) {
+        for (byte j = 0; j < n; j++) {
           pixel.setPixelColor(j, elem);
           pixel.show();
         }
-        for (int i = n; i <= 23; i++ ) {
+        for (byte i = n; i <= 23; i++ ) {
           pixel.setPixelColor(i, 0, 0, 0);
           pixel.show();
         }
@@ -689,7 +733,7 @@ void Going_To_Sleep(){
       if (s_index <= 0) {
         s_index = 23;
       }
-      for (uint8_t i = 0; i < 24; i++) {
+      for (byte i = 0; i < 24; i++) {
         
         if (i == s_index) {
           scheme[i] = tri2;
@@ -731,7 +775,7 @@ void transitionToDisplay() {
   time_running = constrain(time_running, 0, timeset);
   n = constrain(map(time_running, 0, timeset, 0, 25), 0, 24);
 
-  for (uint_fast8_t i = 0; i < 24; i++) {
+  for (byte i = 0; i < 24; i++) {
     delay(25);
     if (i > n) {
       pixel.setPixelColor(i, 0);
@@ -745,3 +789,4 @@ void transitionToDisplay() {
   display();
   
 }
+

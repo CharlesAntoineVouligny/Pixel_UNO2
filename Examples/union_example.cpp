@@ -6,7 +6,7 @@
 typedef union u_conv
 {
     long    lValue;
-    byte    lByte[4];
+    byte    lbyte[4];
         
 };
 
@@ -24,14 +24,14 @@ void setup()
     Serial.println(strt.lValue, DEC);
     Serial.println(strt.lValue, BIN);
 
-    //send start.lByte[0..3] to storage medium
+    //send start.lbyte[0..3] to storage medium
     //
     //here, the retrieval is simulated by copying the byte values from the "strt" union
     //to the corresponding byet values in the "finish" union
     //
     //in use, you'd retrieve the bytes from storage and put them in a destination union
     for(int i = 0; i < 4; i++){
-        finish.lByte[i] = strt.lByte[i];
+        finish.lbyte[i] = strt.lbyte[i];
     }
     Serial.println("Processed values:");
     Serial.println(finish.lValue, DEC);

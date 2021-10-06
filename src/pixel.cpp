@@ -23,7 +23,12 @@ bool
   init_setflag = false,
   setting = false,
   refresh = false,
-  pause = false;
+  view_style = false,
+  press_flag2 = false,
+  shortpress = false,
+  doublepress = false, 
+  longpress = false;
+  
 byte 
   mode = 0, 
   bright, 
@@ -31,15 +36,16 @@ byte
   n, 
   last_n,
   hourset = 0,
+  last_counter = 0,
   p_index,
-  h_index,
-  view_style = false;
+  h_index;
+  
 int  
   timeset = 0, 
   time_passed, 
   time_running, 
-  last_counter = 0,
   presscount = 0;
+
 long 
   hue,
   elem,
@@ -48,32 +54,27 @@ long
   tri2,
   scheme[24],
   s_scheme[24];
+
 unsigned long 
-  time,
-  last_timer = 0;
-
-
+  last_timer = 0,
+  press_time, 
+  release_time;
 
 // Interrupt variables
 volatile byte 
-  second = 0;
-volatile int 
-  minute = 0, 
+  second = 0,
   counter = 0;
+
+volatile int 
+  minute = 0; 
+
 volatile bool 
   press_flag = false, 
-  press_flag2 = false,
-  press_flag3 = false, 
-  release_flag = false, 
-  shortpress = false,
-  doublepress = false, 
-  longpress = false,
+  release_flag = false,
   increment = false,
-  decrement = false;
-volatile unsigned long 
-  press_time, 
-  release_time,
-  first_time;
+  decrement = false,
+  pinAstateCurrent = LOW,
+  pinAStateLast = pinAstateCurrent;
 
 volatile unsigned long 
   timer = 0;
@@ -124,7 +125,7 @@ Serial.begin(9600);
 // Read parameters from EEPROM and reconstruct the hue from 4 bytes
 // using an union (see union_example.cpp in the examples folder)
   bright = EEPROM.read(1);
-  sat = 250;
+  sat = EEPROM.read(2);
   for(int i = 3; i < 7; i++){
         finish.lByte[i-3] = EEPROM.read(i);
     }
@@ -180,12 +181,12 @@ void loop() {
       while (!shortpress) {
         settingDisplay();
       }
-      for (int i = 3; i < 7; i++){
+      for (byte i = 3; i < 7; i++){
       finish.lByte[i-3] = EEPROM.read(i);
       }
       if (hue != finish.lValue) {
         strt.lValue = hue;
-        for (int i = 3; i < 7; i++) {
+        for (byte i = 3; i < 7; i++) {
           EEPROM.write(i, strt.lByte[i-3]);
         }
       }
