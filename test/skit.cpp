@@ -1,16 +1,13 @@
-int period = 1000;
-unsigned long time_now = 0;
- 
-void setup() {
-    Serial.begin(115200);
+click();
+if (singlepress) {
+  Serial.println("Single Press!");
+  singlepress = false;
 }
- 
-void loop() {
-    time_now = millis();
-   
-    Serial.println("Hello");
-   
-    while(millis() < time_now + period){
-        //wait approx. [period] ms
-    }
+if (doublepress) {
+  Serial.println("Double Press!");
+  doublepress = false;
+}
+if (longpress) {
+  Serial.println("Long Press!");
+  longpress = false;
 }
