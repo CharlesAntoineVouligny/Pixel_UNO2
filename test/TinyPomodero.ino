@@ -1,16 +1,14 @@
-#include <Arduino.h>
-#include <EEPROM.h>
 #include <Adafruit_NeoPixel.h>
 #include <avr/sleep.h>
-#include "papps.h"
+#include<avr/interrupt.h>
 #ifdef __AVR__
   #include <avr/power.h>
 #endif
 
-#define POT         A0
+#define POT         A3
 #define PUSH        2
-#define NPN         6
-#define LED_PIN     8
+#define NPN         1
+#define LED_PIN     0
 #define LED_COUNT   24
 
 // Objects declaration
@@ -46,8 +44,55 @@ long
   red,
   blue;
 
+// Functions
+
+ISR (PCINT0_vect)        // Interrupt service routine 
+{
+  MCUCR&=~(1<<SE);      //Disabling sleep mode inside interrupt routine
+}
+void external_interrupt()
+{
+  sei();                //enabling global interrupt
+  GIMSK|= (1<<PCIE);    //Pin change interrupt enable
+  PCMSK|=(1<<PCINT2);   //Pin change interrupt to 2nd pin PB2
+}
+void sleep(){
+  // make sure NeoPixels are off
+  pixel.clear();
+  pixel.show();
+  delay(10);
+
+  // Set all pins as outputs except pin 7
+  // make sure they're low
+    for (byte i = 0; i < 5; i++) {
+      if (i != 2) {
+        pinMode(i, OUTPUT);
+        digitalWrite(i, LOW);
+      }   
+    }
+  external_interrupt();
+    
+  MCUCR|=(1<<SM1);      // enabling sleep mode and powerdown sleep mode
+  MCUCR|= (1<<SE);     //Enabling sleep enable bit
+  __asm__ __volatile__ ( "sleep" "\n\t" :: ); //Sleep instruction to put controller to sleep
+  //controller stops executing instruction after entering sleep mode
+      
+  // wakey wakey
+    
+  
+    pinMode(POT, INPUT);
+    pinMode(PUSH, INPUT_PULLUP);
+    pinMode(NPN, OUTPUT);
+    pinMode(LED_PIN, OUTPUT);
+
+    digitalWrite(NPN, HIGH);
+    focus = !focus;
+    rest = !rest;
+    minute = 0;
+    second = 0;
+  }
+
 void setup() {
-  Serial.begin(9600);
 
   pinMode(POT, INPUT);
   pinMode(PUSH, INPUT_PULLUP);
@@ -57,7 +102,6 @@ void setup() {
   digitalWrite(NPN, HIGH);
   last_pot_reading = analogRead(POT);
   brightness = constrain(map(last_pot_reading, 100, 1023, 0, 100), 0, 100);
-  attachInterrupt(digitalPinToInterrupt(PUSH), button, CHANGE);
   pixel.begin();
   red = pixel.ColorHSV(22000, 255, brightness);
   blue = pixel.ColorHSV(11000, 255, brightness);
@@ -65,7 +109,6 @@ void setup() {
 }
 
 void loop() {
-  click();
   if (millis() > last_reading_time + interval) {
     last_reading_time = interval;
     int pot_reading = analogRead(POT);
@@ -79,7 +122,7 @@ void loop() {
 
 
 
-  if (millis() >= last_second + 1000) {
+  if (millis() >= last_second + 10) {
     last_second = millis();
     second++;
     update = true;
@@ -103,10 +146,7 @@ void loop() {
     }
     if (seconds_left == 0) {
       sleep();
-      focus = false;
-      rest = true;
-      minute = 0;
-      second = 0;
+      
     }
   }
   if (rest) {
@@ -121,10 +161,7 @@ void loop() {
     }
     if (seconds_left == 0) {
       sleep();
-      focus = true;
-      rest = false;
-      minute = 0;
-      second = 0;
+      
     }
   }
 }

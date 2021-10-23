@@ -4,8 +4,8 @@
 
 #define POT         A3
 #define PUSH        2
-#define NPN         1
-#define LED_PIN     0
+#define NPN         0
+#define LED_PIN     1
 #define LED_COUNT   24
 
 // Objects declaration
@@ -24,7 +24,8 @@ bool
   release_flag = false,
   update = true;
 byte 
-  last_light = 0;
+  j = 0,
+  last_light = 0,
   brightness = 5,
   presscount = 0,
   minute = 0,
@@ -101,15 +102,22 @@ void loop() {
     {
     last_pot_reading = pot_reading;
     brightness = constrain(map(last_pot_reading, 100, 1023, 0, 100), 0 , 100);
-    red = pixel.ColorHSV(22000, 255, brightness);
-    blue = pixel.ColorHSV(11000, 255, brightness);
+    unsigned int
+      redColor = 22000 - j*200,
+      blueColor = 25000 + j*1000;
+    red = pixel.ColorHSV(redColor, 255, brightness);
+    blue = pixel.ColorHSV(blueColor, 255, brightness);
+    update = true;
     }
-  if (millis() >= last_second + 1000) {
+  if (millis() >= last_second + 10) {
     last_second = millis();
     second++;
     if (second > 60) {
       second = 0;
       minute++;
+    }
+    if (second % 15 == 0) {
+      j++;
     }
   }
 
@@ -118,13 +126,16 @@ void loop() {
     byte light = map(seconds_left, 0 , 25*60, 0, 25);
     if (last_light != light) {
       last_light = light;
+      unsigned int color = 22000 - j*200;
+      red = pixel.ColorHSV(color, 255, brightness);
+      
       update = true;
     }
 
     if (update) {
+      
       pixel.fill(red, 0, last_light);
       pixel.fill(0,last_light);
-
       pixel.show();
       update = false;
         
@@ -136,6 +147,7 @@ void loop() {
       rest = true;
       minute = 0;
       second = 0;
+      j = 0;
     }
   }
   
@@ -144,13 +156,16 @@ void loop() {
     byte light = map(seconds_left, 0 , 5*60, 0, 25);
     if (last_light != light) {
       last_light = light;
+      unsigned int color = 25000 + j*1000;
+      blue = pixel.ColorHSV(color, 255, brightness);
+      
       update = true;
     }
 
     if (update) {
+      
       pixel.fill(blue, 0, last_light);
       pixel.fill(0,last_light);
-
       pixel.show();
       update = false;
         
@@ -158,11 +173,11 @@ void loop() {
     }
     if (seconds_left == 0) {
       sleep();
-      focus = false;
-      rest = true;
+      focus = true;
+      rest = false;
       minute = 0;
       second = 0;
+      j = 0;
     }
   }
 }
-
